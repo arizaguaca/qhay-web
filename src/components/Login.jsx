@@ -20,9 +20,11 @@ const Login = ({ onLoginSuccess, onSwitchToRegister }) => {
         e.preventDefault();
         setStatus('loading');
 
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
         try {
             // Assuming login endpoint is /login
-            const response = await fetch('http://localhost:8080/login', {
+            const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -42,17 +44,6 @@ const Login = ({ onLoginSuccess, onSwitchToRegister }) => {
             setStatus('error');
             setMessage('Error de conexión con el servidor');
 
-            // FOR DEMO PURPOSES: If API is not ready, simulate success with a fake user
-            /*
-            setTimeout(() => {
-              onLoginSuccess({
-                id: 'demo-user-123',
-                name: 'Usuario Demo',
-                email: formData.email,
-                role: 'admin'
-              });
-            }, 1000);
-            */
         }
     };
 

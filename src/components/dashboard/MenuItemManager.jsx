@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Check, Loader2, Utensils, AlignLeft, DollarSign, Eye, EyeOff, Camera, Clock } from 'lucide-react';
 
 const MenuItemManager = ({ restaurantId }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
     // Utility to handle backend image URLs
     const getImageUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-        return `http://localhost:8080/${url}`;
+        return `${API_URL}/${url}`;
     };
 
     const [items, setItems] = useState([]);
@@ -34,7 +36,7 @@ const MenuItemManager = ({ restaurantId }) => {
     const fetchItems = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/restaurants/${restaurantId}/menu`);
+            const response = await fetch(`http://localhost:8080/menu/?restaurant_id=${restaurantId}`);
             if (response.ok) {
                 const data = await response.json();
                 setItems(data || []);
@@ -59,11 +61,16 @@ const MenuItemManager = ({ restaurantId }) => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            const method = formData.id ? 'PUT' : 'POST';
-            const url = formData.id ? `http://localhost:8080/menu/${formData.id}` : 'http://localhost:8080/menu';
+            const itemId = formData.id;
+            const method = itemId ? 'PUT' : 'POST';
+            // Importante: Usar la barra al final /menu/ para evitar el redirect 301
+            const url = itemId
+                ? `http://localhost:8080/menu/${itemId}/`
+                : `http://localhost:8080/menu/`;
 
             const payload = {
                 ...formData,
+                restaurant_id: restaurantId,
                 price: formData.price === '' ? 0 : parseFloat(formData.price),
                 prep_time: formData.prep_time === '' ? 0 : parseInt(formData.prep_time)
             };
@@ -76,14 +83,14 @@ const MenuItemManager = ({ restaurantId }) => {
 
             if (response.ok) {
                 const savedItem = await response.json();
-                const itemId = savedItem.id || savedItem.ID;
+                const savedId = savedItem.id || savedItem.ID;
 
                 // Si hay una imagen seleccionada, subirla
-                if (imageFile && itemId) {
+                if (imageFile && savedId) {
                     const uploadData = new FormData();
-                    uploadData.append('image', imageFile); // Se asume 'image' como campo
+                    uploadData.append('image', imageFile);
 
-                    const uploadRes = await fetch(`http://localhost:8080/menu/${itemId}/image`, {
+                    const uploadRes = await fetch(`http://localhost:8080/menu/${savedId}/image/`, {
                         method: 'POST',
                         body: uploadData,
                     });
@@ -127,12 +134,12 @@ const MenuItemManager = ({ restaurantId }) => {
     const handleDelete = async (id) => {
         if (!confirm('¿Seguro que deseas eliminar este plato?')) return;
         try {
-            const response = await fetch(`http://localhost:8080/menu/${id}`, { method: 'DELETE' });
+            const response = await fetch(`http://localhost:8080/menu/${id}/`, { method: 'DELETE' });
             if (response.ok) {
-                setItems(items.filter(i => i.id !== id));
+                setItems(items.filter(i => (i.id || i.ID) !== id));
             }
         } catch (error) {
-            setItems(items.filter(i => i.id !== id));
+            setItems(items.filter(i => (i.id || i.ID) !== id));
         }
     };
 

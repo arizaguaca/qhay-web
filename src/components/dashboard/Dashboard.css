@@ -4,19 +4,23 @@
 
 .dashboard-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 2rem;
+    text-align: center;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
 }
 
 .dashboard-tabs {
     display: flex;
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     background: rgba(0, 0, 0, 0.2);
     padding: 0.5rem;
     border-radius: 12px;
     width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .tab-btn {
@@ -44,6 +48,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
+    justify-content: center;
 }
 
 .day-card {
@@ -205,6 +210,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
+    justify-content: center;
 }
 
 .menu-item-image-container {
@@ -293,6 +299,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1.5rem;
+    justify-content: center;
 }
 
 .qr-card {
@@ -316,6 +323,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 2rem;
+    justify-content: center;
 }
 
 .restaurant-card {
@@ -474,3 +482,70 @@
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--primary);
 }
+
+/* Staff Manager Styles */
+.staff-manager table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.staff-manager th {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.staff-manager tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.action-btn-hover:hover {
+    background: rgba(248, 113, 113, 0.15) !important;
+    transform: scale(1.1);
+}
+
+/* Order Manager Styles */
+.order-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.order-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.order-items::-webkit-scrollbar {
+    width: 4px;
+}
+
+.order-items::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+.order-actions button {
+    transition: all 0.2s ease;
+}
+
+.order-actions button:hover {
+    border-color: white !important;
+    transform: scale(1.05);
+}
+
+@media (max-width: 600px) {
+    .dashboard-tabs {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .tab-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
