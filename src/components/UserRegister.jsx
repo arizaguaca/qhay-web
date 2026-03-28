@@ -26,8 +26,10 @@ const UserRegister = () => {
         e.preventDefault();
         setStatus('loading');
 
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
         try {
-            const response = await fetch('http://localhost:8080/users', {
+            const response = await fetch(`${API_URL}/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -68,8 +68,33 @@ const RestaurantRegister = ({ currentUser }) => {
     };
 
     useEffect(() => {
-        if (currentUser?.id || currentUser?.ID) {
-            fetchRestaurants();
+        const userId = currentUser?.id || currentUser?.ID;
+        const userRole = currentUser?.role;
+        const userRestId = currentUser?.restaurant_id || currentUser?.RestaurantID;
+
+        if (userId) {
+            if (userRole && userRole !== 'owner' && userRestId) {
+                // Es Staff, cargar su restaurante específico directamente
+                const fetchMyRestaurant = async () => {
+                    setLoading(true);
+                    try {
+                        const res = await fetch(`http://localhost:8080/restaurants/${userRestId}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            setSelectedRestaurant(data);
+                            setView('dashboard');
+                        }
+                    } catch (e) {
+                        console.error("Error loading staff restaurant", e);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchMyRestaurant();
+            } else {
+                // Es Owner, cargar su lista de locales
+                fetchRestaurants();
+            }
         }
     }, [currentUser]);
 

@@ -25,10 +25,24 @@ const CustomerVerification = ({ onVerified }) => {
                 body: JSON.stringify({ phone: phoneNumber })
             });
 
+            const data = await response.json();
+
             if (response.ok) {
+                if (data.exists) {
+                    // SI YA EXISTE: Saltamos la verificación y entramos directo
+                    const customerData = {
+                        phone: phoneNumber,
+                        verified: true,
+                        customer_id: data.customer_id,
+                        customer: data.customer
+                    };
+                    localStorage.setItem('qhay_customer_session', JSON.stringify(customerData));
+                    onVerified(customerData);
+                    return;
+                }
+                // SI ES NUEVO: Vamos al paso de OTP
                 setStep('otp');
             } else {
-                const data = await response.json();
                 setError(data.message || 'Error al enviar el código. Intenta de nuevo.');
             }
         } catch (err) {
@@ -57,10 +71,15 @@ const CustomerVerification = ({ onVerified }) => {
             });
 
             if (response.ok) {
-                // Save customer session
-                const customerData = { phone: phoneNumber, verified: true };
+                const data = await response.json();
+                // Save complete customer session from backend
+                const customerData = {
+                    phone: phoneNumber,
+                    verified: data.verified,
+                    customer_id: data.customer_id,
+                    customer: data.customer
+                };
                 localStorage.setItem('qhay_customer_session', JSON.stringify(customerData));
-
                 onVerified(customerData);
             } else {
                 const data = await response.json();
