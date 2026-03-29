@@ -3,15 +3,19 @@ import { motion } from 'framer-motion';
 import { QrCode, Plus, Download, Trash2, Hash } from 'lucide-react';
 
 const QRManager = ({ restaurantId }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
     const [qrs, setQrs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newTableNumber, setNewTableNumber] = useState('');
 
     const fetchQRs = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/restaurants/${restaurantId}/qrs`);
+            const response = await fetch(`${API_URL}/restaurants/${restaurantId}/qrs`);
             if (response.ok) {
                 const data = await response.json();
+                if (data && Array.isArray(data)) {
+                    data.sort((a, b) => a.table_number - b.table_number);
+                }
                 setQrs(data || []);
             }
         } catch (error) {
@@ -33,13 +37,12 @@ const QRManager = ({ restaurantId }) => {
     const generateQR = async () => {
         if (!newTableNumber) return;
         try {
-            const response = await fetch('http://localhost:8080/qrcodes', {
+            const response = await fetch(`${API_URL}/qrcodes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     restaurant_id: restaurantId,
-                    table_number: parseInt(newTableNumber),
-                    code: `http://qhay.app/r/${restaurantId}/t/${newTableNumber}`
+                    table_count: parseInt(newTableNumber)
                 })
             });
             if (response.ok) {
@@ -47,28 +50,32 @@ const QRManager = ({ restaurantId }) => {
                 setNewTableNumber('');
             }
         } catch (error) {
-            setQrs([...qrs, { id: Math.random().toString(), table_number: parseInt(newTableNumber), code: `demo-code-${newTableNumber}` }]);
-            setNewTableNumber('');
+            // Error handling placeholder
+            console.error("Error generating QRs:", error);
         }
     };
 
     return (
         <div className="qr-manager">
             <div className="menu-header">
-                <h3>Generación de QRs</h3>
+                <div>
+                    <h3>Generación de QRs</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Genera códigos en lote para tus mesas</p>
+                </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <div className="input-wrapper" style={{ width: '120px' }}>
+                    <div className="input-wrapper" style={{ width: '150px' }}>
                         <Hash size={16} className="input-icon" />
                         <input
                             type="number"
-                            placeholder="Mesa #"
+                            placeholder="Cant. Mesas"
                             value={newTableNumber}
                             onChange={e => setNewTableNumber(e.target.value)}
                             style={{ paddingLeft: '2.5rem' }}
+                            min="1"
                         />
                     </div>
                     <button className="btn-primary" onClick={generateQR}>
-                        <Plus size={18} /> Generar
+                        <Plus size={18} /> Generar Todos
                     </button>
                 </div>
             </div>
@@ -83,7 +90,7 @@ const QRManager = ({ restaurantId }) => {
                     >
                         <div className="qr-image-container" style={{ background: 'white', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '180px' }}>
                             <img
-                                src={`http://localhost:8080/qrcodes/image?id=${qr.id}`}
+                                src={`${API_URL}/qrcodes/image?id=${qr.id}`}
                                 alt={`Mesa ${qr.table_number}`}
                                 style={{ width: '100%', height: 'auto', maxWidth: '160px' }}
                                 onError={(e) => {
@@ -102,7 +109,7 @@ const QRManager = ({ restaurantId }) => {
                         </p>
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                             <a
-                                href={`http://localhost:8080/qrcodes/image?id=${qr.id}`}
+                                href={`${API_URL}/qrcodes/image?id=${qr.id}`}
                                 download={`QR_Mesa_${qr.table_number}.png`}
                                 className="btn-primary"
                                 style={{ padding: '0.5rem', flex: 1, display: 'flex', justifyContent: 'center', textDecoration: 'none' }}

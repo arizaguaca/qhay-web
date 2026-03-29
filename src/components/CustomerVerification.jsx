@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, CheckCircle2, ArrowRight, ShieldCheck, Loader2, X } from 'lucide-react';
 
 const CustomerVerification = ({ onVerified }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
     const [step, setStep] = useState('phone'); // 'phone' or 'otp'
     const [phoneNumber, setPhoneNumber] = useState('');
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -19,7 +20,7 @@ const CustomerVerification = ({ onVerified }) => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:8080/auth/send-code', {
+            const response = await fetch(`${API_URL}/auth/send-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: phoneNumber })
@@ -61,7 +62,7 @@ const CustomerVerification = ({ onVerified }) => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:8080/auth/verify', {
+            const response = await fetch(`${API_URL}/auth/verify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Trash2, Edit2, Shield, User, Mail, Loader2, X, Check, Search, Filter } from 'lucide-react';
 
 const StaffManager = ({ restaurantId: initialRestaurantId }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
     // Asegurarnos de tener el ID correcto (GORM usa ID a veces)
     const restaurantId = initialRestaurantId;
     const [staff, setStaff] = useState([]);
@@ -30,7 +31,7 @@ const StaffManager = ({ restaurantId: initialRestaurantId }) => {
     const fetchStaff = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/users?restaurant_id=${restaurantId}`);
+            const response = await fetch(`${API_URL}/restaurants/${restaurantId}/staff`);
             if (response.ok) {
                 const data = await response.json();
                 setStaff(data || []);
@@ -51,7 +52,7 @@ const StaffManager = ({ restaurantId: initialRestaurantId }) => {
         setIsSaving(true);
         try {
             const method = editingId ? 'PUT' : 'POST';
-            const url = editingId ? `http://localhost:8080/users?id=${editingId}` : 'http://localhost:8080/users';
+            const url = editingId ? `${API_URL}/restaurants/${restaurantId}/staff/${editingId}` : `${API_URL}/restaurants/${restaurantId}/staff`;
 
             const response = await fetch(url, {
                 method,
@@ -94,7 +95,7 @@ const StaffManager = ({ restaurantId: initialRestaurantId }) => {
     const handleDelete = async (id) => {
         if (!confirm('¿Seguro que deseas eliminar a este miembro del equipo?')) return;
         try {
-            const response = await fetch(`http://localhost:8080/users?id=${id}`, {
+            const response = await fetch(`${API_URL}/restaurants/${restaurantId}/staff/${id}`, {
                 method: 'DELETE'
             });
             if (response.ok) {

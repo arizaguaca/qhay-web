@@ -3,13 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Check, Loader2, Utensils, AlignLeft, DollarSign, Eye, EyeOff, Camera, Clock } from 'lucide-react';
 
 const MenuItemManager = ({ restaurantId }) => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+    // Base URL for images (without /api/v1)
+    const BASE_URL = API_URL.replace('/api/v1', '');
 
     // Utility to handle backend image URLs
     const getImageUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-        return `${API_URL}/${url}`;
+        return `${BASE_URL}/${url}`;
     };
 
     const [items, setItems] = useState([]);
@@ -36,7 +38,7 @@ const MenuItemManager = ({ restaurantId }) => {
     const fetchItems = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/menu/?restaurant_id=${restaurantId}`);
+            const response = await fetch(`${API_URL}/menu?restaurant_id=${restaurantId}`);
             if (response.ok) {
                 const data = await response.json();
                 setItems(data || []);
@@ -63,10 +65,9 @@ const MenuItemManager = ({ restaurantId }) => {
         try {
             const itemId = formData.id;
             const method = itemId ? 'PUT' : 'POST';
-            // Importante: Usar la barra al final /menu/ para evitar el redirect 301
             const url = itemId
-                ? `http://localhost:8080/menu/${itemId}/`
-                : `http://localhost:8080/menu/`;
+                ? `${API_URL}/menu/${itemId}`
+                : `${API_URL}/menu`;
 
             const payload = {
                 ...formData,
@@ -90,7 +91,7 @@ const MenuItemManager = ({ restaurantId }) => {
                     const uploadData = new FormData();
                     uploadData.append('image', imageFile);
 
-                    const uploadRes = await fetch(`http://localhost:8080/menu/${savedId}/image/`, {
+                    const uploadRes = await fetch(`${API_URL}/menu/${savedId}/image`, {
                         method: 'POST',
                         body: uploadData,
                     });
@@ -134,7 +135,7 @@ const MenuItemManager = ({ restaurantId }) => {
     const handleDelete = async (id) => {
         if (!confirm('¿Seguro que deseas eliminar este plato?')) return;
         try {
-            const response = await fetch(`http://localhost:8080/menu/${id}/`, { method: 'DELETE' });
+            const response = await fetch(`${API_URL}/menu/${id}`, { method: 'DELETE' });
             if (response.ok) {
                 setItems(items.filter(i => (i.id || i.ID) !== id));
             }

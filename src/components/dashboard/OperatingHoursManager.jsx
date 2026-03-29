@@ -5,6 +5,7 @@ import { Save, AlertCircle, Clock, Check, Loader2 } from 'lucide-react';
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 const OperatingHoursManager = ({ restaurantId }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
     const [hours, setHours] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -13,7 +14,7 @@ const OperatingHoursManager = ({ restaurantId }) => {
     useEffect(() => {
         const fetchHours = async () => {
             try {
-                const response = await fetch(`http://localhost:8080/restaurants/${restaurantId}/hours`);
+                const response = await fetch(`${API_URL}/restaurants/${restaurantId}/hours`);
                 let data = null;
 
                 if (response.ok) {
@@ -73,7 +74,7 @@ const OperatingHoursManager = ({ restaurantId }) => {
     const saveHours = async () => {
         setSaving(true);
         try {
-            const response = await fetch(`http://localhost:8080/restaurants/${restaurantId}/hours`, {
+            const response = await fetch(`${API_URL}/restaurants/${restaurantId}/hours`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(hours)
