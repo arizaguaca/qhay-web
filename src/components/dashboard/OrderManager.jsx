@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Clock, CheckCircle2, ChevronRight, DollarSign, Loader2, Utensils, MessageCircle, AlertCircle } from 'lucide-react';
 
 const OrderManager = ({ restaurantId }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
     const [orders, setOrders] = useState([]);
     const [menu, setMenu] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +19,7 @@ const OrderManager = ({ restaurantId }) => {
 
     const fetchOrders = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/orders?restaurant_id=${restaurantId}`);
+            const response = await fetch(`${API_URL}/orders?restaurant_id=${restaurantId}`);
             if (response.ok) {
                 const data = await response.json();
                 setOrders(data || []);
@@ -30,7 +31,7 @@ const OrderManager = ({ restaurantId }) => {
 
     const fetchMenu = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/restaurants/${restaurantId}/menu/`);
+            const response = await fetch(`${API_URL}/menu?restaurant_id=${restaurantId}`);
             if (response.ok) {
                 const data = await response.json();
                 setMenu(data || []);
@@ -54,7 +55,7 @@ const OrderManager = ({ restaurantId }) => {
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
-            const response = await fetch(`http://localhost:8080/orders/${orderId}/status`, {
+            const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })

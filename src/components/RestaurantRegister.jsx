@@ -5,11 +5,14 @@ import './RestaurantRegister.css';
 import RestaurantDashboard from './dashboard/RestaurantDashboard';
 
 const RestaurantRegister = ({ currentUser }) => {
-    // Utility to handle backend image URLs
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+    // Base URL for images (without /api/v1)
+    const BASE_URL = API_URL.replace('/api/v1', '');
+
     const getImageUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:')) return url;
-        return `http://localhost:8080/${url}`;
+        return `${BASE_URL}/${url}`;
     };
 
     // Views: 'list', 'register', 'dashboard'
@@ -44,21 +47,12 @@ const RestaurantRegister = ({ currentUser }) => {
 
         setLoading(true);
         try {
-            // Ajustado para usar el ID en la ruta como indica la definición :owner_id
-            const response = await fetch(`http://localhost:8080/restaurants/owner/${userId}`);
-
+            const response = await fetch(`${API_URL}/users/${userId}/restaurants`);
             if (response.ok) {
                 const data = await response.json();
-                console.log("Restaurantes cargados:", data);
                 setRestaurants(data || []);
             } else {
-                console.error("Error del servidor al cargar restaurantes:", response.status);
-                // Si la ruta /owner/${userId} falla, intentamos la ruta por defecto con query param por si acaso
-                const fallbackRes = await fetch(`http://localhost:8080/restaurants?owner_id=${userId}`);
-                if (fallbackRes.ok) {
-                    const fallbackData = await fallbackRes.json();
-                    setRestaurants(fallbackData || []);
-                }
+                console.error("Error al cargar restaurantes:", response.status);
             }
         } catch (error) {
             console.error("Error de red al cargar restaurantes:", error);
@@ -78,7 +72,7 @@ const RestaurantRegister = ({ currentUser }) => {
                 const fetchMyRestaurant = async () => {
                     setLoading(true);
                     try {
-                        const res = await fetch(`http://localhost:8080/restaurants/${userRestId}`);
+                        const res = await fetch(`${API_URL}/restaurants/${userRestId}`);
                         if (res.ok) {
                             const data = await res.json();
                             setSelectedRestaurant(data);
@@ -127,7 +121,7 @@ const RestaurantRegister = ({ currentUser }) => {
         setStatus('loading');
         try {
             // Step 1: Create the restaurant first to get an ID
-            const response = await fetch('http://localhost:8080/restaurants', {
+            const response = await fetch(`${API_URL}/restaurants`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -145,7 +139,7 @@ const RestaurantRegister = ({ currentUser }) => {
                     const uploadData = new FormData();
                     uploadData.append('logo', logoFile); // Campo 'logo' según backend
 
-                    const uploadRes = await fetch(`http://localhost:8080/restaurants/${restaurantId}/logo`, {
+                    const uploadRes = await fetch(`${API_URL}/restaurants/${restaurantId}/logo`, {
                         method: 'POST',
                         body: uploadData,
                     });

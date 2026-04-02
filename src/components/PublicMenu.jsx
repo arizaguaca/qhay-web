@@ -5,12 +5,13 @@ import CustomerVerification from './CustomerVerification';
 import './PublicMenu.css';
 
 const PublicMenu = ({ restaurantId, tableNumber }) => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+    const BASE_URL = API_URL.replace('/api/v1', '');
 
     const getImageUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:')) return url;
-        return `${API_URL}/${url}`;
+        return `${BASE_URL}/${url}`;
     };
 
     const [restaurant, setRestaurant] = useState(null);
@@ -118,7 +119,7 @@ const PublicMenu = ({ restaurantId, tableNumber }) => {
                 const resData = await resResponse.json();
                 setRestaurant(resData);
 
-                const menuResponse = await fetch(`${API_URL}/restaurants/${restaurantId}/menu/`);
+                const menuResponse = await fetch(`${API_URL}/menu?restaurant_id=${restaurantId}`);
                 if (menuResponse.ok) {
                     const menuData = await menuResponse.json();
                     setMenu(menuData || []);

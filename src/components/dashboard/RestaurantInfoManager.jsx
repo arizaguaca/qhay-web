@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import { Save, MapPin, Phone, AlignLeft, Utensils, Image as ImageIcon, Navigation, Loader2, Check, X, Upload, Link } from 'lucide-react';
 
 const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
-    // Utility to handle backend image URLs
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+    const BASE_URL = API_URL.replace('/api/v1', '');
+
     const getImageUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-        return `http://localhost:8080/${url}`;
+        return `${BASE_URL}/${url}`;
     };
 
     const [formData, setFormData] = useState({
@@ -70,7 +72,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
                 const uploadData = new FormData();
                 uploadData.append('logo', logoFile); // Campo 'logo' según indica el backend
 
-                const uploadRes = await fetch(`http://localhost:8080/restaurants/${restaurant.id}/logo`, {
+                const uploadRes = await fetch(`${API_URL}/restaurants/${restaurant.id}/logo`, {
                     method: 'POST',
                     body: uploadData,
                 });
@@ -83,10 +85,11 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
                 }
             }
 
-            const response = await fetch(`http://localhost:8080/restaurants/${restaurant.id}`, {
+            const response = await fetch(`${API_URL}/restaurants/${restaurant.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    ...restaurant,
                     ...formData,
                     logo_url: finalLogoUrl
                 })

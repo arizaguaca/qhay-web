@@ -23,8 +23,8 @@ const Login = ({ onLoginSuccess, onSwitchToRegister }) => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
         try {
-            // Assuming login endpoint is /login
-            const response = await fetch(`${API_URL}/login`, {
+            // Updated to /auth/login based on new backend conventions
+            const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
