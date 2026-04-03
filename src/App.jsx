@@ -1,66 +1,72 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import UserRegister from './components/UserRegister'
-import RestaurantRegister from './components/RestaurantRegister'
-import Login from './components/Login'
-import PublicMenu from './components/PublicMenu'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCw, Utensils, LogOut, User as UserIcon } from 'lucide-react';
+import LoginPage from './presentation/pages/LoginPage';
+import RegisterPage from './presentation/pages/RegisterPage';
+import RestaurantsPage from './presentation/pages/RestaurantsPage';
+import PublicMenuPage from './presentation/pages/PublicMenuPage';
+import './App.css';
 
-import { RefreshCw, Utensils, LogOut, User as UserIcon } from 'lucide-react'
-
-function App() {
-  const [currentView, setCurrentView] = useState('restaurants')
-  const [user, setUser] = useState(null)
-  const [isAuthChecking, setIsAuthChecking] = useState(true)
-
-  // Public Menu State (for QR Code scanning)
+/**
+ * App — Root component. Acts as the application router and dependency injector.
+ * Repositories are passed as props so the presentation layer stays decoupled.
+ *
+ * @param {{ authRepository: Object, restaurantRepository: Object }} props
+ */
+function App({ authRepository, restaurantRepository }) {
+  const [currentView, setCurrentView] = useState('restaurants');
+  const [user, setUser] = useState(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [publicRoute, setPublicRoute] = useState(null);
 
   useEffect(() => {
-    // Detect public restaurant URL: /restaurants/:id?table=:num
-    const path = window.location.pathname;
-    const parts = path.split('/');
-
+    // Detect public QR route: /restaurants/:id?table=:num
+    const parts = window.location.pathname.split('/');
     if (parts.length === 3 && parts[1] === 'restaurants') {
       const restaurantId = parts[2];
-      const params = new URLSearchParams(window.location.search);
-      const tableNumber = params.get('table');
+      const tableNumber = new URLSearchParams(window.location.search).get('table');
       setPublicRoute({ restaurantId, tableNumber });
     }
 
-    const savedUser = localStorage.getItem('qhay_user')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
-    }
-    setIsAuthChecking(false)
-  }, [])
+    try {
+      const saved = localStorage.getItem('qhay_user');
+      if (saved) setUser(JSON.parse(saved));
+    } catch {}
 
-  const handleLogin = (userData) => {
-    setUser(userData)
-    localStorage.setItem('qhay_user', JSON.stringify(userData))
-    setCurrentView('restaurants')
-  }
+    setIsAuthChecking(false);
+  }, []);
+
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    localStorage.setItem('qhay_user', JSON.stringify(userData));
+    setCurrentView('restaurants');
+  };
 
   const handleLogout = () => {
-    setUser(null)
-    localStorage.removeItem('qhay_user')
-    setCurrentView('login')
-  }
+    setUser(null);
+    localStorage.removeItem('qhay_user');
+    setCurrentView('login');
+  };
 
+  // Public QR menu route — no auth required
   if (publicRoute) {
-    return <PublicMenu restaurantId={publicRoute.restaurantId} tableNumber={publicRoute.tableNumber} />;
+    return (
+      <PublicMenuPage
+        authRepository={authRepository}
+        restaurantId={publicRoute.restaurantId}
+        tableNumber={publicRoute.tableNumber}
+      />
+    );
   }
 
   return (
     <div className="app-container">
       <header>
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
           <h1>Qhay</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: user ? '1rem' : '0' }}>Gestión centralizada de restaurantes y menús</p>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: user ? '1rem' : '0' }}>
+            Gestión centralizada de restaurantes y menús
+          </p>
 
           {user && (
             <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -96,48 +102,34 @@ function App() {
           </div>
         ) : (
           <AnimatePresence mode="wait">
-            {(!user && currentView !== 'register') ? (
-              <motion.div
-                key="login-view"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Login onLoginSuccess={handleLogin} onSwitchToRegister={() => setCurrentView('register')} />
+            {!user && currentView !== 'register' ? (
+              <motion.div key="login" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+                <LoginPage
+                  authRepository={authRepository}
+                  onLoginSuccess={handleLoginSuccess}
+                  onSwitchToRegister={() => setCurrentView('register')}
+                />
               </motion.div>
             ) : currentView === 'register' ? (
-              <motion.div
-                key="register-view"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <UserRegister />
-                {!user && (
-                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                    <p style={{ color: 'var(--text-muted)' }}>¿Ya tienes cuenta? <button style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }} onClick={() => setCurrentView('login')}>Inicia sesión</button></p>
-                  </div>
-                )}
+              <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                <RegisterPage
+                  authRepository={authRepository}
+                  onSwitchToLogin={() => setCurrentView('login')}
+                />
               </motion.div>
             ) : (
-              <motion.div
-                key="restaurant-view"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <RestaurantRegister currentUser={user} />
+              <motion.div key="restaurants" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                <RestaurantsPage
+                  restaurantRepository={restaurantRepository}
+                  currentUser={user}
+                />
               </motion.div>
             )}
           </AnimatePresence>
         )}
       </main>
-
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
