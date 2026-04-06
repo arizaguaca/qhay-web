@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Save, MapPin, Phone, AlignLeft, Utensils, Image as ImageIcon, Navigation, Loader2, Check, X, Upload, Link } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Save, MapPin, Phone, AlignLeft, Utensils, Image as ImageIcon, Navigation, Loader2, Check, X, Upload, Link, Building2 } from 'lucide-react';
 import { useRestaurant } from '../../hooks/useRestaurants';
 import { restaurantRepository } from '../../../data/repositories/restaurantRepository';
 import { resolveImageUrl } from '../../../data/api/httpClient';
@@ -11,17 +12,22 @@ import { resolveImageUrl } from '../../../data/api/httpClient';
  * @param {{ restaurant: import('../../../core/entities/Restaurant').Restaurant, onUpdate: Function }} props
  */
 const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
-  const { update } = useRestaurant(restaurantRepository, null); // null = skip initial fetch
+  const { update } = useRestaurant(restaurantRepository, restaurant.id);
 
   const [formData, setFormData] = useState({
     name: restaurant.name || '',
     description: restaurant.description || '',
     address: restaurant.address || '',
     phone: restaurant.phone || '',
+    locationType: restaurant.locationType || '',
+    cuisineType: restaurant.cuisineType || '',
+    mallName: restaurant.mallName || '',
+    link: restaurant.link || '',
     logo_url: restaurant.logoUrl || '',
-    latitude: restaurant.latitude || '',
-    longitude: restaurant.longitude || '',
   });
+
+  const shoppingMalls = ['Andino', 'Unicentro', 'Titán Plaza', 'Santafé', 'Parque La Colina', 'Gran Estación', 'Fontanar', 'El Tesoro', 'Viva Envigado'];
+  const cuisineTypes = ['Colombiana', 'Mexicana', 'Peruana', 'Italiana', 'Asiática', 'Comida Rápida', 'Vegetariana/Vegana', 'Parrilla/Asados'];
 
   const [logoFile, setLogoFile] = useState(null);
   const [logoMode, setLogoMode] = useState('url');
@@ -31,7 +37,13 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newState = { ...prev, [name]: value };
+      if (name === 'locationType' && value === 'Stand-alone') {
+        newState.mallName = '';
+      }
+      return newState;
+    });
     if (name === 'logo_url' && logoMode === 'url') setPreviewUrl(value);
   };
 
@@ -43,24 +55,34 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
     }
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setFormData((prev) => ({ ...prev, latitude: pos.coords.latitude.toString(), longitude: pos.coords.longitude.toString() })),
-      () => alert('No pudimos obtener tu ubicación automáticamente.')
-    );
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('loading');
     try {
       const file = logoMode === 'file' ? logoFile : null;
-      const payload = { ...formData, logo_url: logoMode === 'file' ? '' : formData.logo_url };
+      const linkTrimmed = (formData.link || '').trim();
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        address: formData.address,
+        phone: formData.phone,
+        locationType: formData.locationType,
+        cuisineType: formData.cuisineType,
+        mallName: formData.mallName,
+        link: linkTrimmed,
+        logoUrl: logoMode === 'file' ? '' : (formData.logo_url || '').trim(),
+      };
 
-      // Direct repository call since the hook's update needs a loaded restaurant
-      const updated = await restaurantRepository.update(restaurant.id, payload);
-      if (file) await restaurantRepository.uploadLogo(restaurant.id, file);
+      // Use the 'update' function from useRestaurant hook, which handles single-request multipart updates.
+      const updated = await update(payload, file);
+
+      setFormData((prev) => ({
+        ...prev,
+        logo_url: updated.logoUrl || '',
+      }));
+      setPreviewUrl(resolveImageUrl(updated.logoUrl) || '');
+      setLogoFile(null);
+      setLogoMode('url');
 
       setStatus('success');
       if (onUpdate) onUpdate(updated);
@@ -88,20 +110,11 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
       <form onSubmit={handleSubmit} className="info-form-grid">
         <div className="info-main-section">
           <div className="glass-card info-card">
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Nombre del Restaurante</label>
-                <div className="input-wrapper">
-                  <Utensils className="input-icon" size={18} />
-                  <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Ej: La Pizzería Gourmet" required />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Teléfono de Contacto</label>
-                <div className="input-wrapper">
-                  <Phone className="input-icon" size={18} />
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+57 321 000 0000" />
-                </div>
+            <div className="form-group">
+              <label>Nombre del Restaurante</label>
+              <div className="input-wrapper">
+                <Utensils className="input-icon" size={18} />
+                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Ej: La Pizzería Gourmet" required />
               </div>
             </div>
 
@@ -114,40 +127,102 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
             </div>
 
             <div className="form-group" style={{ marginTop: '1.5rem' }}>
+              <label>Teléfono de Contacto</label>
+              <div className="input-wrapper">
+                <Phone className="input-icon" size={18} />
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+57 321 000 0000" />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1.5rem' }}>
               <label>Dirección Física</label>
               <div className="input-wrapper">
                 <MapPin className="input-icon" size={18} />
                 <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Calle 123 #45-67, Ciudad" />
               </div>
             </div>
-          </div>
 
-          <div className="glass-card info-card" style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Navigation size={18} color="var(--primary)" /> Coordenadas Geográficas
-              </h4>
-              <button type="button" className="btn-secondary" onClick={handleGetLocation} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
-                Obtener Mi Ubicación
-              </button>
+            <div className="form-group" style={{ marginTop: '1.5rem' }}>
+              <label>¿Dónde se encuentra su local?</label>
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 400, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="locationType"
+                    value="Stand-alone"
+                    checked={formData.locationType === 'Stand-alone'}
+                    onChange={handleChange}
+                  />
+                  Local Independiente
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 400, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="locationType"
+                    value="Food Court"
+                    checked={formData.locationType === 'Food Court'}
+                    onChange={handleChange}
+                  />
+                  Plazoleta de Comidas
+                </label>
+              </div>
             </div>
-            <div className="form-grid">
+
+            <AnimatePresence>
+              {formData.locationType === 'Food Court' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                    <label>Seleccione el centro comercial</label>
+                    <div className="input-wrapper">
+                      <Building2 className="input-icon" size={18} />
+                      <select
+                        name="mallName"
+                        value={formData.mallName}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Selecciona uno…</option>
+                        {shoppingMalls.map((mall) => (
+                          <option key={mall} value={mall}>{mall}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="form-grid" style={{ marginTop: '1.5rem' }}>
               <div className="form-group">
-                <label>Latitud</label>
+                <label>¿Qué tipo de comida ofrece?</label>
                 <div className="input-wrapper">
-                  <input type="text" name="latitude" value={formData.latitude} onChange={handleChange} placeholder="9.123456" />
+                  <Utensils className="input-icon" size={18} />
+                  <select
+                    name="cuisineType"
+                    value={formData.cuisineType}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Selecciona uno…</option>
+                    {cuisineTypes.map((cuisine) => (
+                      <option key={cuisine} value={cuisine}>{cuisine}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="form-group">
-                <label>Longitud</label>
+                <label>Enlace (web o red social) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
                 <div className="input-wrapper">
-                  <input type="text" name="longitude" value={formData.longitude} onChange={handleChange} placeholder="-75.123456" />
+                  <Link className="input-icon" size={18} />
+                  <input type="url" name="link" value={formData.link} onChange={handleChange} placeholder="https://instagram.com/milocal" />
                 </div>
               </div>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.8rem' }}>
-              Las coordenadas ayudan a los clientes a encontrarte en el mapa.
-            </p>
           </div>
         </div>
 

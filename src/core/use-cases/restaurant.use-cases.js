@@ -31,19 +31,35 @@ export const getRestaurantById = (restaurantRepository, restaurantId) => {
  * @returns {Promise<import('../entities/Restaurant').Restaurant>}
  */
 export const createRestaurant = async (restaurantRepository, formData, logoFile = null) => {
-  const { name, phone, description, address } = formData;
-  if (!name || !phone || !description || !address) {
+  const { name, phone, description, address, locationType, cuisineType, mallName, link } = formData;
+  if (!name || !phone || !description || !address || !locationType || !cuisineType) {
     throw new Error('Todos los campos del restaurante son obligatorios.');
   }
 
-  const restaurant = await restaurantRepository.create({
-    ...formData,
-    logo_url: formData.logoMode === 'url' ? formData.logo_url : '',
-  });
-
-  if (formData.logoMode === 'file' && logoFile && restaurant.id) {
-    await restaurantRepository.uploadLogo(restaurant.id, logoFile);
+  const ownerId = formData.owner_id ?? formData.ownerId;
+  if (!ownerId) {
+    throw new Error('Se requiere el ID del propietario.');
   }
+
+  const logoMode = formData.logoMode ?? 'url';
+  /** URL del logo: modo URL usa el campo; modo archivo se rellena tras POST /…/logo. */
+  const logoUrlFromForm = (formData.logo_url ?? formData.logoUrl ?? '').trim();
+  const logoUrl = logoMode === 'url' ? logoUrlFromForm : '';
+  const linkTrimmed = (link || '').trim();
+
+  /** Cuerpo alineado con POST /api/v1/restaurants. */
+  const restaurant = await restaurantRepository.create({
+    name,
+    description,
+    address,
+    phone,
+    locationType,
+    cuisineType,
+    mallName,
+    link: linkTrimmed,
+    ownerId,
+    logoUrl,
+  }, logoMode === 'file' ? logoFile : null); // el repositorio lo incluye en el FormData
 
   return restaurant;
 };
@@ -58,9 +74,5 @@ export const createRestaurant = async (restaurantRepository, formData, logoFile 
  * @returns {Promise<import('../entities/Restaurant').Restaurant>}
  */
 export const updateRestaurant = async (restaurantRepository, restaurantId, data, logoFile = null) => {
-  const updated = await restaurantRepository.update(restaurantId, data);
-  if (logoFile) {
-    await restaurantRepository.uploadLogo(restaurantId, logoFile);
-  }
-  return updated;
+  return await restaurantRepository.update(restaurantId, data, logoFile);
 };

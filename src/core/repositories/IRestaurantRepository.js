@@ -37,7 +37,7 @@ export const IRestaurantRepository = {
    * Uploads a logo file for a restaurant.
    * @param {string} restaurantId
    * @param {File} file
-   * @returns {Promise<void>}
+   * @returns {Promise<import('../entities/Restaurant').Restaurant | null>}
    */
   uploadLogo: async (_restaurantId, _file) => { throw new Error('Not implemented'); },
 

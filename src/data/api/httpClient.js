@@ -14,14 +14,27 @@ export const apiUrl = (path) => `${BASE_URL}${path}`;
 
 /**
  * Resolves a resource image URL returned by the backend.
- * Backend may return relative paths like "uploads/img.jpg".
+ * Backend may return relative paths like "uploads/logos/img.jpg".
+ * Static files are served from the server ROOT (not under /api/v1),
+ * so we use only the origin (scheme + host + port), dropping /api/v1.
  * @param {string | null | undefined} url
  * @returns {string | null}
  */
 export const resolveImageUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-  return `${BASE_URL}/${url}`;
+
+  // Strip the API path prefix (/api/v1 etc.) — static files live at the server root
+  const origin = (() => {
+    try {
+      return new URL(BASE_URL).origin; // "http://localhost:8080"
+    } catch {
+      return BASE_URL.replace(/\/api\/.*$/, '').replace(/\/$/, '');
+    }
+  })();
+
+  const path = url.replace(/^\//, '');
+  return `${origin}/${path}`;
 };
 
 /**

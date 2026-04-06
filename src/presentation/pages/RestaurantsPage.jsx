@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, AlignLeft, MapPin, Phone, Image, ArrowRight, CheckCircle2, AlertCircle, Upload, Link, X, Plus, ChevronRight } from 'lucide-react';
+import { Utensils, AlignLeft, MapPin, Phone, Image, ArrowRight, CheckCircle2, AlertCircle, Upload, Link, X, Plus, ChevronRight, Building2 } from 'lucide-react';
 import { useRestaurants, useRestaurant } from '../hooks/useRestaurants';
 import { isStaff } from '../../core/entities/User';
+import { resolveImageUrl } from '../../data/api/httpClient';
 import RestaurantDashboard from './RestaurantDashboard';
 import './RestaurantsPage.css';
 
@@ -39,18 +40,23 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
 
   const [formData, setFormData] = useState({
     name: '', description: '', address: '', phone: '',
-    owner_id: ownerId, logo_url: '', logoMode: 'url',
+    locationType: '', cuisineType: '', mallName: '', link: '',
+    owner_id: ownerId, logo_url: '',
   });
 
-  const getImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/${url}`;
-  };
+  const shoppingMalls = ['Andino', 'Unicentro', 'Titán Plaza', 'Santafé', 'Parque La Colina', 'Gran Estación', 'Fontanar', 'El Tesoro', 'Viva Envigado'];
+  const cuisineTypes = ['Colombiana', 'Mexicana', 'Peruana', 'Italiana', 'Asiática', 'Comida Rápida', 'Vegetariana/Vegana', 'Parrilla/Asados'];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newState = { ...prev, [name]: value };
+      // Reset mallName if locationType changes back to Stand-alone
+      if (name === 'locationType' && value === 'Stand-alone') {
+        newState.mallName = '';
+      }
+      return newState;
+    });
     if (name === 'logo_url' && logoMode === 'url') setPreviewUrl(value);
   };
 
@@ -78,13 +84,24 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
     e.preventDefault();
     setSaveStatus('loading');
     try {
-      await create({ ...formData, logoMode }, logoFile);
+      await create(
+        {
+          ...formData,
+          logoMode,
+          logo_url: typeof formData.logo_url === 'string' ? formData.logo_url.trim() : formData.logo_url,
+        },
+        logoFile
+      );
       setSaveStatus('success');
       setSaveMessage('¡Restaurante registrado exitosamente!');
       setTimeout(() => {
         setView('list');
         setSaveStatus('idle');
-        setFormData({ name: '', description: '', address: '', phone: '', owner_id: ownerId, logo_url: '', logoMode: 'url' });
+        setFormData({
+          name: '', description: '', address: '', phone: '',
+          locationType: '', cuisineType: '', mallName: '', link: '',
+          owner_id: ownerId, logo_url: '',
+        });
         setPreviewUrl('');
         setLogoFile(null);
       }, 2000);
@@ -149,7 +166,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                       <div style={{ width: '60px', height: '60px', borderRadius: '12px', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {rest.logoUrl
-                          ? <img src={getImageUrl(rest.logoUrl)} alt={rest.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ? <img src={resolveImageUrl(rest.logoUrl)} alt={rest.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <Utensils size={24} color="var(--primary)" />}
                       </div>
                       <div style={{ flex: 1 }}>
@@ -185,20 +202,11 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="register-form">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="name">Nombre</label>
-                  <div className="input-wrapper">
-                    <Utensils className="input-icon" size={18} />
-                    <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} placeholder="Nombre del local" required />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Teléfono</label>
-                  <div className="input-wrapper">
-                    <Phone className="input-icon" size={18} />
-                    <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="Teléfono" required />
-                  </div>
+              <div className="form-group">
+                <label htmlFor="name">Nombre</label>
+                <div className="input-wrapper">
+                  <Utensils className="input-icon" size={18} />
+                  <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} placeholder="Nombre del local" required />
                 </div>
               </div>
 
@@ -211,6 +219,14 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
               </div>
 
               <div className="form-group">
+                <label htmlFor="phone">Teléfono</label>
+                <div className="input-wrapper">
+                  <Phone className="input-icon" size={18} />
+                  <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="Teléfono" required />
+                </div>
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="address">Dirección</label>
                 <div className="input-wrapper">
                   <MapPin className="input-icon" size={18} />
@@ -218,19 +234,143 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                 </div>
               </div>
 
+              <div className="form-group">
+                <label>¿Dónde se encuentra su local?</label>
+                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 400, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="locationType"
+                      value="Stand-alone"
+                      checked={formData.locationType === 'Stand-alone'}
+                      onChange={handleChange}
+                      required
+                    />
+                    Local Independiente
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 400, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="locationType"
+                      value="Food Court"
+                      checked={formData.locationType === 'Food Court'}
+                      onChange={handleChange}
+                    />
+                    Plazoleta de Comidas
+                  </label>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {formData.locationType === 'Food Court' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="form-group">
+                      <label htmlFor="mallName">Seleccione el centro comercial</label>
+                      <div className="input-wrapper">
+                        <Building2 className="input-icon" size={18} />
+                        <select
+                          id="mallName"
+                          name="mallName"
+                          value={formData.mallName}
+                          onChange={handleChange}
+                          required
+                        >
+                          <option value="">Selecciona uno…</option>
+                          {shoppingMalls.map((mall) => (
+                            <option key={mall} value={mall}>{mall}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="cuisineType">¿Qué tipo de comida ofrece?</label>
+                  <div className="input-wrapper">
+                    <Utensils className="input-icon" size={18} />
+                    <select
+                      id="cuisineType"
+                      name="cuisineType"
+                      value={formData.cuisineType}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Selecciona uno…</option>
+                      {cuisineTypes.map((cuisine) => (
+                        <option key={cuisine} value={cuisine}>{cuisine}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="link">Enlace (web o red social) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
+                  <div className="input-wrapper">
+                    <Link className="input-icon" size={18} />
+                    <input
+                      type="url"
+                      id="link"
+                      name="link"
+                      value={formData.link}
+                      onChange={handleChange}
+                      placeholder="https://instagram.com/milocal"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="logo-section">
                 <div className="logo-header">
                   <label>Logo</label>
                   <div className="mode-selector">
-                    <button type="button" className={logoMode === 'url' ? 'active' : ''} onClick={() => setLogoMode('url')}><Link size={14} /> URL</button>
-                    <button type="button" className={logoMode === 'file' ? 'active' : ''} onClick={() => setLogoMode('file')}><Upload size={14} /> Subir</button>
+                    <button
+                      type="button"
+                      className={logoMode === 'url' ? 'active' : ''}
+                      onClick={() => {
+                        if (logoMode === 'file') {
+                          setLogoFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                          setPreviewUrl('');
+                        }
+                        setLogoMode('url');
+                      }}
+                    >
+                      <Link size={14} /> URL
+                    </button>
+                    <button
+                      type="button"
+                      className={logoMode === 'file' ? 'active' : ''}
+                      onClick={() => {
+                        setLogoMode('file');
+                        setFormData((prev) => ({ ...prev, logo_url: '' }));
+                        setPreviewUrl('');
+                      }}
+                    >
+                      <Upload size={14} /> Subir
+                    </button>
                   </div>
                 </div>
                 <div className="logo-content">
                   {logoMode === 'url' ? (
                     <div className="input-wrapper">
                       <Image className="input-icon" size={18} />
-                      <input type="url" id="logo_url" name="logo_url" value={formData.logo_url} onChange={handleChange} placeholder="https://..." />
+                      <input
+                        type="text"
+                        inputMode="url"
+                        autoComplete="off"
+                        id="logo_url"
+                        name="logo_url"
+                        value={formData.logo_url}
+                        onChange={handleChange}
+                        placeholder="https://…"
+                      />
                     </div>
                   ) : (
                     <div className="file-upload-zone" onClick={() => fileInputRef.current.click()}>

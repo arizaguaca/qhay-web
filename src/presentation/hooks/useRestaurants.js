@@ -65,10 +65,10 @@ export const useRestaurant = (restaurantRepository, restaurantId) => {
   }, [restaurantRepository, restaurantId]);
 
   const update = useCallback(async (data, logoFile) => {
-    const updated = await updateRestaurant(restaurantRepository, restaurant.id, data, logoFile);
+    const updated = await updateRestaurant(restaurantRepository, restaurantId, data, logoFile);
     setRestaurant(updated);
     return updated;
-  }, [restaurantRepository, restaurant]);
+  }, [restaurantRepository, restaurantId]);
 
   return { restaurant, loading, error, update };
 };

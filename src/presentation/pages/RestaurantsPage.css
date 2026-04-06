@@ -10,6 +10,50 @@
     }
 }
 
+.register-form .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.register-form .input-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.register-form .input-wrapper input,
+.register-form .input-wrapper select {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.register-form .input-wrapper select {
+    appearance: none;
+    cursor: pointer;
+}
+
+.register-form .input-wrapper select option {
+    background-color: var(--bg-main);
+    color: white;
+}
+
+.register-form .input-wrapper input:focus,
+.register-form .input-wrapper select:focus {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
 .input-wrapper textarea {
     width: 100%;
     padding: 0.875rem 1rem 0.875rem 3rem;
