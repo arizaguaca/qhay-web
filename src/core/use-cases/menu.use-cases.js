@@ -22,18 +22,19 @@ export const saveMenuItem = async (menuRepository, formData, imageFile = null) =
   const isEditing = Boolean(formData.id);
 
   const payload = {
-    ...formData,
+    restaurantId: formData.restaurant_id ?? formData.restaurantId,
+    categoryId: formData.categoryId ?? '',
+    name: formData.name,
+    description: formData.description,
     price: formData.price === '' ? 0 : parseFloat(formData.price),
-    prep_time: formData.prep_time === '' ? 0 : parseInt(formData.prep_time),
+    prepTime: formData.prep_time === '' ? 0 : parseInt(formData.prep_time ?? formData.prepTime ?? 0),
+    isAvailable: formData.is_available ?? formData.isAvailable ?? true,
+    groups: formData.groups ?? [],
   };
 
   const item = isEditing
-    ? await menuRepository.update(formData.id, payload)
-    : await menuRepository.create(payload);
-
-  if (imageFile && item.id) {
-    await menuRepository.uploadImage(item.id, imageFile);
-  }
+    ? await menuRepository.update(formData.id, payload, imageFile)
+    : await menuRepository.create(payload, imageFile);
 
   return item;
 };
