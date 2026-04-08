@@ -75,7 +75,7 @@ const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
         {activeTab === 'orders' && <OrderManager restaurantId={restaurant.id} />}
         {activeTab === 'hours'  && <OperatingHoursManager restaurantId={restaurant.id} />}
         {activeTab === 'staff'  && <StaffManager restaurantId={restaurant.id} />}
-        {activeTab === 'qrs'    && <QRManager restaurantId={restaurant.id} />}
+        {activeTab === 'qrs'    && <QRManager restaurantId={restaurant.id} restaurantName={restaurant.name} />}
         {activeTab === 'info'   && <RestaurantInfoManager restaurant={restaurant} onUpdate={setRestaurant} />}
       </motion.div>
     </div>

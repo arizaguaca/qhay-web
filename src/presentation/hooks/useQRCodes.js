@@ -28,11 +28,11 @@ export const useQRCodes = (restaurantId) => {
     fetchQRs();
   }, [fetchQRs]);
 
-  const generate = useCallback(async (tableNumber) => {
+  const generate = useCallback(async (tableNumber, label = '') => {
     if (!tableNumber) return;
     setGenerating(true);
     try {
-      const newQr = await qrRepository.generate(restaurantId, tableNumber);
+      const newQr = await qrRepository.generate(restaurantId, tableNumber, label);
       setQrs((prev) => [...prev, newQr]);
     } catch (err) {
       console.error('Error al generar QR:', err);
@@ -41,7 +41,20 @@ export const useQRCodes = (restaurantId) => {
     }
   }, [restaurantId]);
 
+  const generateBulk = useCallback(async (quantity) => {
+    if (!quantity || quantity <= 0) return;
+    setGenerating(true);
+    try {
+      await qrRepository.generateBulk(restaurantId, quantity);
+      await fetchQRs(); // Re-cargamos para ver todos los nuevos
+    } catch (err) {
+      console.error('Error al generar QRs en bloque:', err);
+    } finally {
+      setGenerating(false);
+    }
+  }, [restaurantId, fetchQRs]);
+
   const getImageUrl = useCallback((qrId) => qrRepository.getImageUrl(qrId), []);
 
-  return { qrs, loading, generating, generate, getImageUrl };
+  return { qrs, loading, generating, generate, generateBulk, getImageUrl };
 };
