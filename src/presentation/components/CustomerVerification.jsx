@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { Phone, ArrowRight, ShieldCheck, Loader2, User } from 'lucide-react';
 import { useCustomerVerification } from '../hooks/useCustomerVerification';
 
 /**
@@ -10,15 +10,40 @@ import { useCustomerVerification } from '../hooks/useCustomerVerification';
  * @param {{ authRepository: Object, onVerified: Function }} props
  */
 const CustomerVerification = ({ authRepository, onVerified }) => {
-  const { step, setStep, phone, loading, error, sendCode, verifyOtp } = useCustomerVerification(authRepository);
+  const { step, setStep, name, setName, phone, loading, error, createCustomer, verifyOtp } = useCustomerVerification(authRepository);
+  const [countryCode, setCountryCode] = useState('+57');
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const countryRef = useRef(null);
 
-  const handleSendCode = async (e) => {
+  const countryOptions = useMemo(() => ([
+    { label: 'USA (+1)', value: '+1' },
+    { label: 'CAN (+1)', value: '+1' },
+    { label: 'MEX (+52)', value: '+52' },
+    { label: 'ARG (+54)', value: '+54' },
+    { label: 'BRA (+55)', value: '+55' },
+    { label: 'CHL (+56)', value: '+56' },
+    { label: 'COL (+57)', value: '+57' },
+    { label: 'VEN (+58)', value: '+58' },
+  ]), []);
+
+  useEffect(() => {
+    const onPointerDown = (e) => {
+      if (!countryRef.current) return;
+      if (!countryRef.current.contains(e.target)) setIsCountryOpen(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, []);
+
+  const handleCreateCustomer = async (e) => {
     e.preventDefault();
     try {
-      const result = await sendCode(phoneInput);
-      if (result.verified) onVerified();
+      setName(nameInput);
+      const fullPhone = `${countryCode}${phoneInput}`.replace(/\s+/g, '');
+      await createCustomer({ name: nameInput, phone: fullPhone });
     } catch {}
   };
 
@@ -66,17 +91,99 @@ const CustomerVerification = ({ authRepository, onVerified }) => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
                 Para continuar e ingresar al menú, por favor verifica tu número de teléfono.
               </p>
-              <form onSubmit={handleSendCode}>
-                <div className="input-wrapper" style={{ marginBottom: '1.5rem' }}>
+              <form onSubmit={handleCreateCustomer}>
+                <div className="input-wrapper" style={{ marginBottom: '1rem' }}>
+                  <User className="input-icon" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Tu nombre"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    style={{ paddingLeft: '3rem' }}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <div ref={countryRef} style={{ position: 'relative', width: '30%' }}>
+                    <button
+                      type="button"
+                      aria-label="Indicativo internacional"
+                      aria-haspopup="listbox"
+                      aria-expanded={isCountryOpen}
+                      onClick={() => setIsCountryOpen((v) => !v)}
+                      style={{
+                        width: '100%',
+                        padding: '0.95rem 1rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '14px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: '0.9rem',
+                        fontWeight: 800,
+                      }}
+                    >
+                      {countryCode}
+                    </button>
+
+                    {isCountryOpen && (
+                      <div
+                        role="listbox"
+                        aria-label="Opciones de indicativo internacional"
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 8px)',
+                          left: 0,
+                          right: 0,
+                          background: '#0f0f12',
+                          border: '1px solid rgba(99, 102, 241, 0.25)',
+                          borderRadius: '14px',
+                          overflow: 'hidden',
+                          zIndex: 10,
+                          boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
+                        }}
+                      >
+                        {countryOptions.map((opt, idx) => (
+                          <button
+                            key={`${opt.label}-${idx}`}
+                            type="button"
+                            role="option"
+                            aria-selected={opt.value === countryCode}
+                            onClick={() => {
+                              setCountryCode(opt.value);
+                              setIsCountryOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem 0.9rem',
+                              background: opt.value === countryCode ? 'rgba(99, 102, 241, 0.14)' : 'transparent',
+                              border: 'none',
+                              borderBottom: '1px solid rgba(255,255,255,0.06)',
+                              color: 'white',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              fontSize: '0.80rem',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="input-wrapper" style={{ marginBottom: 0, flex: 1 }}>
                   <Phone className="input-icon" size={18} />
                   <input
                     type="tel"
-                    placeholder="Tu número de teléfono"
+                    placeholder="Número de teléfono"
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value)}
                     style={{ paddingLeft: '3rem' }}
                     required
                   />
+                </div>
                 </div>
                 {error && <p style={{ color: '#f87171', fontSize: '0.8rem', marginBottom: '1rem' }}>{error}</p>}
                 <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>

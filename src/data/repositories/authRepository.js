@@ -29,6 +29,16 @@ export const authRepository = {
     }
   },
 
+  async createCustomer({ name, phone, channel }) {
+    const res = await apiFetch('/customers', {
+      method: 'POST',
+      body: JSON.stringify({ name, phone, channel }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || data.error || 'Error al crear el cliente.');
+    return mapCustomer(data);
+  },
+
   async sendCustomerCode(phone) {
     const res = await apiFetch('/auth/send-code', {
       method: 'POST',
@@ -43,13 +53,13 @@ export const authRepository = {
     return { exists: false };
   },
 
-  async verifyCustomerCode(phone, code) {
-    const res = await apiFetch('/auth/verify', {
+  async verifyCode(contact, code) {
+    const res = await apiFetch('/verification/verify-code', {
       method: 'POST',
-      body: JSON.stringify({ phone, code }),
+      body: JSON.stringify({ contact, code }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Código incorrecto.');
-    return mapCustomer({ ...data, phone });
+    return mapCustomer({ ...data, contact });
   },
 };

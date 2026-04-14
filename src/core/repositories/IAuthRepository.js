@@ -21,6 +21,13 @@ export const IAuthRepository = {
   register: async (_data) => { throw new Error('Not implemented'); },
 
   /**
+   * Creates a customer and triggers verification via selected channel.
+   * @param {{name: string, phone: string, channel: 'whatsapp' | 'sms'}} data
+   * @returns {Promise<import('../entities/Customer').Customer>}
+   */
+  createCustomer: async (_data) => { throw new Error('Not implemented'); },
+
+  /**
    * Sends an OTP code to a customer phone number.
    * @param {string} phone
    * @returns {Promise<{exists: boolean, customer_id?: string, customer?: Object}>}
@@ -29,9 +36,9 @@ export const IAuthRepository = {
 
   /**
    * Verifies an OTP code for a customer phone.
-   * @param {string} phone
+   * @param {string} contact
    * @param {string} code
    * @returns {Promise<import('../entities/Customer').Customer>}
    */
-  verifyCustomerCode: async (_phone, _code) => { throw new Error('Not implemented'); },
+  verifyCode: async (_contact, _code) => { throw new Error('Not implemented'); },
 };

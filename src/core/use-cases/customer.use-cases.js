@@ -1,16 +1,23 @@
 /**
- * verifyCustomer — Use case: initiates phone verification for a public-menu customer.
- * Returns existing customer directly if already registered, otherwise sends OTP.
+ * createCustomerVerification — Use case: creates a customer and triggers verification (OTP)
+ * using the chosen channel (e.g. WhatsApp).
  *
  * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
- * @param {string} phone
- * @returns {Promise<{exists: boolean, customer?: import('../entities/Customer').Customer}>}
+ * @param {{name: string, phone: string, channel: 'whatsapp' | 'sms'}} data
+ * @returns {Promise<import('../entities/Customer').Customer>}
  */
-export const verifyCustomerPhone = async (authRepository, phone) => {
+export const createCustomerVerification = async (authRepository, data) => {
+  const name = (data?.name ?? '').trim();
+  const phone = (data?.phone ?? '').trim();
+  const channel = data?.channel ?? 'whatsapp';
+
+  if (!name || name.length < 2) {
+    throw new Error('Por favor ingresa tu nombre.');
+  }
   if (!phone || phone.length < 7) {
     throw new Error('Por favor ingresa un número de teléfono válido.');
   }
-  return authRepository.sendCustomerCode(phone);
+  return authRepository.createCustomer({ name, phone, channel });
 };
 
 /**
@@ -25,5 +32,5 @@ export const confirmCustomerOtp = async (authRepository, phone, code) => {
   if (!code || code.length < 6) {
     throw new Error('El código debe tener 6 dígitos.');
   }
-  return authRepository.verifyCustomerCode(phone, code);
+  return authRepository.verifyCode(phone, code);
 };
