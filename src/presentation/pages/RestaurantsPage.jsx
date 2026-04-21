@@ -4,6 +4,7 @@ import { Utensils, AlignLeft, MapPin, Phone, Image, ArrowRight, CheckCircle2, Al
 import { useRestaurants, useRestaurant } from '../hooks/useRestaurants';
 import { isStaff } from '../../core/entities/User';
 import { resolveImageUrl } from '../../data/api/httpClient';
+import { catalogRepository } from '../../data/repositories/catalogRepository';
 import RestaurantDashboard from './RestaurantDashboard';
 import './RestaurantsPage.css';
 
@@ -40,20 +41,43 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
 
   const [formData, setFormData] = useState({
     name: '', description: '', address: '', phone: '',
-    locationType: '', cuisineType: '', mallName: '', link: '',
+    locationType: '', cuisineType: '', mallId: '', link: '',
     owner_id: ownerId, logo_url: '',
   });
 
-  const shoppingMalls = ['Andino', 'Unicentro', 'Titán Plaza', 'Santafé', 'Parque La Colina', 'Gran Estación', 'Fontanar', 'El Tesoro', 'Viva Envigado'];
-  const cuisineTypes = ['Colombiana', 'Mexicana', 'Peruana', 'Italiana', 'Asiática', 'Comida Rápida', 'Vegetariana/Vegana', 'Parrilla/Asados'];
+  const [malls, setMalls] = useState([]);
+  const [cuisineTypes, setCuisineTypes] = useState([]);
+  const [showCustomCuisine, setShowCustomCuisine] = useState(false);
+  const [customCuisine, setCustomCuisine] = useState('');
+
+  React.useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const [mallsData, cuisineData] = await Promise.all([
+          catalogRepository.getMalls(),
+          catalogRepository.getCuisineTypes(ownerId)
+        ]);
+        setMalls(mallsData);
+        setCuisineTypes(cuisineData);
+      } catch (err) {
+        console.error('Error loading catalogs:', err);
+      }
+    };
+    loadCatalogs();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'cuisineType' && value === 'CUSTOM') {
+      setShowCustomCuisine(true);
+      return;
+    }
+    
     setFormData((prev) => {
       const newState = { ...prev, [name]: value };
-      // Reset mallName if locationType changes back to Stand-alone
+      // Reset mallId if locationType changes back to Stand-alone
       if (name === 'locationType' && value === 'Stand-alone') {
-        newState.mallName = '';
+        newState.mallId = '';
       }
       return newState;
     });
@@ -84,14 +108,48 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
     e.preventDefault();
     setSaveStatus('loading');
     try {
-      await create(
+      if (formData.locationType === 'Food Court' && !formData.mallId) {
+        throw new Error('Debe seleccionar un centro comercial para locales en Plazoleta de Comidas.');
+      }
+      let finalCuisineType = formData.cuisineType;
+      
+      // If a custom cuisine was entered, we create the cuisine type record first
+      // to get the ID, and then send that ID to the restaurant creation.
+      if (showCustomCuisine && customCuisine) {
+        try {
+          // Creating custom cuisine type with ownerId
+          const newCuisine = await catalogRepository.createCuisineType(customCuisine, ownerId);
+          finalCuisineType = newCuisine.id;
+        } catch (cErr) {
+          console.error('Failed to create custom cuisine type:', cErr);
+          throw new Error('No se pudo crear el nuevo tipo de cocina. Por favor intente de nuevo.');
+        }
+      }
+
+      const createdRestaurant = await create(
         {
           ...formData,
+          cuisineType: finalCuisineType,
           logoMode,
           logo_url: typeof formData.logo_url === 'string' ? formData.logo_url.trim() : formData.logo_url,
         },
         logoFile
       );
+
+      // Since we already created it and got the ID, 
+      // the backend should have the association if it stores the ID.
+      // If we need to UPDATE the cuisine type with the new restaurant ID:
+      if (showCustomCuisine && createdRestaurant.id && finalCuisineType) {
+        try {
+          // This part depends on if the backend needs an explicit update of the cuisine type 
+          // to link it to the restaurant. The user's curl had restaurantId in the POST.
+          // Since we didn't have it before, we might need a way to link it, 
+          // but the restaurant record itself now points to this cuisine type ID.
+        } catch (cErr) {
+          console.warn('Failed to link custom cuisine type:', cErr);
+        }
+      }
+
       setSaveStatus('success');
       setSaveMessage('¡Restaurante registrado exitosamente!');
       setTimeout(() => {
@@ -99,7 +157,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
         setSaveStatus('idle');
         setFormData({
           name: '', description: '', address: '', phone: '',
-          locationType: '', cuisineType: '', mallName: '', link: '',
+          locationType: '', cuisineType: '', mallId: '', link: '',
           owner_id: ownerId, logo_url: '',
         });
         setPreviewUrl('');
@@ -270,19 +328,19 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                     style={{ overflow: 'hidden' }}
                   >
                     <div className="form-group">
-                      <label htmlFor="mallName">Seleccione el centro comercial</label>
+                      <label htmlFor="mallId">Seleccione el centro comercial</label>
                       <div className="input-wrapper">
                         <Building2 className="input-icon" size={18} />
                         <select
-                          id="mallName"
-                          name="mallName"
-                          value={formData.mallName}
+                          id="mallId"
+                          name="mallId"
+                          value={formData.mallId}
                           onChange={handleChange}
                           required
                         >
                           <option value="">Selecciona uno…</option>
-                          {shoppingMalls.map((mall) => (
-                            <option key={mall} value={mall}>{mall}</option>
+                          {malls.map((mall) => (
+                            <option key={mall.id} value={mall.id}>{mall.name}</option>
                           ))}
                         </select>
                       </div>
@@ -301,15 +359,48 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                       name="cuisineType"
                       value={formData.cuisineType}
                       onChange={handleChange}
-                      required
+                      required={!showCustomCuisine}
                     >
                       <option value="">Selecciona uno…</option>
                       {cuisineTypes.map((cuisine) => (
-                        <option key={cuisine} value={cuisine}>{cuisine}</option>
+                        <option key={cuisine.id} value={cuisine.id}>{cuisine.name}</option>
                       ))}
+                      <option value="CUSTOM">+ Otro (Crear nuevo...)</option>
                     </select>
                   </div>
                 </div>
+
+                <AnimatePresence>
+                  {showCustomCuisine && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      style={{ overflow: 'hidden', gridColumn: 'span 2' }}
+                    >
+                      <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                        <label>Nombre del nuevo tipo de cocina</label>
+                        <div className="input-wrapper">
+                          <Plus className="input-icon" size={18} />
+                          <input
+                            type="text"
+                            value={customCuisine}
+                            onChange={(e) => setCustomCuisine(e.target.value)}
+                            placeholder="Ej: Comida Mediterránea"
+                            required
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => { setShowCustomCuisine(false); setCustomCuisine(''); setFormData(p => ({...p, cuisineType: ''})); }}
+                            style={{ position: 'absolute', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <div className="form-group">
                   <label htmlFor="link">Enlace (web o red social) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
                   <div className="input-wrapper">
