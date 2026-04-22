@@ -4,6 +4,8 @@ import { Save, MapPin, Phone, AlignLeft, Utensils, Image as ImageIcon, Navigatio
 import { useRestaurant } from '../../hooks/useRestaurants';
 import { restaurantRepository } from '../../../data/repositories/restaurantRepository';
 import { resolveImageUrl } from '../../../data/api/httpClient';
+import { catalogRepository } from '../../../data/repositories/catalogRepository';
+import { Plus } from 'lucide-react';
 
 /**
  * RestaurantInfoManager — Edits basic info and logo of a restaurant.
@@ -21,13 +23,31 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
     phone: restaurant.phone || '',
     locationType: restaurant.locationType || '',
     cuisineType: restaurant.cuisineType || '',
-    mallName: restaurant.mallName || '',
+    mallId: restaurant.mallId || '',
     link: restaurant.link || '',
     logo_url: restaurant.logoUrl || '',
   });
 
-  const shoppingMalls = ['Andino', 'Unicentro', 'Titán Plaza', 'Santafé', 'Parque La Colina', 'Gran Estación', 'Fontanar', 'El Tesoro', 'Viva Envigado'];
-  const cuisineTypes = ['Colombiana', 'Mexicana', 'Peruana', 'Italiana', 'Asiática', 'Comida Rápida', 'Vegetariana/Vegana', 'Parrilla/Asados'];
+  const [malls, setMalls] = useState([]);
+  const [cuisineTypes, setCuisineTypes] = useState([]);
+  const [showCustomCuisine, setShowCustomCuisine] = useState(false);
+  const [customCuisine, setCustomCuisine] = useState('');
+
+  React.useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const [mallsData, cuisineData] = await Promise.all([
+          catalogRepository.getMalls(),
+          catalogRepository.getCuisineTypes(restaurant.ownerId)
+        ]);
+        setMalls(mallsData);
+        setCuisineTypes(cuisineData);
+      } catch (err) {
+        console.error('Error loading catalogs:', err);
+      }
+    };
+    loadCatalogs();
+  }, []);
 
   const [logoFile, setLogoFile] = useState(null);
   const [logoMode, setLogoMode] = useState('url');
@@ -37,10 +57,15 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'cuisineType' && value === 'CUSTOM') {
+      setShowCustomCuisine(true);
+      return;
+    }
+    
     setFormData((prev) => {
       const newState = { ...prev, [name]: value };
       if (name === 'locationType' && value === 'Stand-alone') {
-        newState.mallName = '';
+        newState.mallId = '';
       }
       return newState;
     });
@@ -59,16 +84,32 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
     e.preventDefault();
     setStatus('loading');
     try {
+      if (formData.locationType === 'Food Court' && !formData.mallId) {
+        throw new Error('Debe seleccionar un centro comercial.');
+      }
       const file = logoMode === 'file' ? logoFile : null;
       const linkTrimmed = (formData.link || '').trim();
+      
+      let finalCuisineType = formData.cuisineType;
+      if (showCustomCuisine && customCuisine) {
+        // Create custom cuisine type and get its ID using ownerId
+        try {
+          const newCuisine = await catalogRepository.createCuisineType(customCuisine, restaurant.ownerId);
+          finalCuisineType = newCuisine.id;
+        } catch (cErr) {
+          console.error('Failed to create custom cuisine type:', cErr);
+          throw new Error('No se pudo crear el nuevo tipo de cocina.');
+        }
+      }
+
       const payload = {
         name: formData.name,
         description: formData.description,
         address: formData.address,
         phone: formData.phone,
         locationType: formData.locationType,
-        cuisineType: formData.cuisineType,
-        mallName: formData.mallName,
+        cuisineType: finalCuisineType,
+        mallId: formData.mallId,
         link: linkTrimmed,
         logoUrl: logoMode === 'file' ? '' : (formData.logo_url || '').trim(),
       };
@@ -83,6 +124,8 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
       setPreviewUrl(resolveImageUrl(updated.logoUrl) || '');
       setLogoFile(null);
       setLogoMode('url');
+      setShowCustomCuisine(false);
+      setCustomCuisine('');
 
       setStatus('success');
       if (onUpdate) onUpdate(updated);
@@ -181,14 +224,14 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
                     <div className="input-wrapper">
                       <Building2 className="input-icon" size={18} />
                       <select
-                        name="mallName"
-                        value={formData.mallName}
+                        name="mallId"
+                        value={formData.mallId}
                         onChange={handleChange}
                         required
                       >
                         <option value="">Selecciona uno…</option>
-                        {shoppingMalls.map((mall) => (
-                          <option key={mall} value={mall}>{mall}</option>
+                        {malls.map((mall) => (
+                          <option key={mall.id} value={mall.id}>{mall.name}</option>
                         ))}
                       </select>
                     </div>
@@ -206,15 +249,48 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
                     name="cuisineType"
                     value={formData.cuisineType}
                     onChange={handleChange}
-                    required
+                    required={!showCustomCuisine}
                   >
                     <option value="">Selecciona uno…</option>
                     {cuisineTypes.map((cuisine) => (
-                      <option key={cuisine} value={cuisine}>{cuisine}</option>
+                      <option key={cuisine.id} value={cuisine.id}>{cuisine.name}</option>
                     ))}
+                    <option value="CUSTOM">+ Otro (Crear nuevo...)</option>
                   </select>
                 </div>
               </div>
+
+              <AnimatePresence>
+                {showCustomCuisine && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ overflow: 'hidden', gridColumn: 'span 2' }}
+                  >
+                    <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                      <label>Nombre del nuevo tipo de cocina</label>
+                      <div className="input-wrapper">
+                        <Plus className="input-icon" size={18} />
+                        <input
+                          type="text"
+                          value={customCuisine}
+                          onChange={(e) => setCustomCuisine(e.target.value)}
+                          placeholder="Ej: Comida Mediterránea"
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => { setShowCustomCuisine(false); setCustomCuisine(''); setFormData(p => ({...p, cuisineType: ''})); }}
+                          style={{ position: 'absolute', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <div className="form-group">
                 <label>Enlace (web o red social) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
                 <div className="input-wrapper">

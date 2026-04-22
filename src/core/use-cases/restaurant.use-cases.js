@@ -31,7 +31,7 @@ export const getRestaurantById = (restaurantRepository, restaurantId) => {
  * @returns {Promise<import('../entities/Restaurant').Restaurant>}
  */
 export const createRestaurant = async (restaurantRepository, formData, logoFile = null) => {
-  const { name, phone, description, address, locationType, cuisineType, mallName, link } = formData;
+  const { name, phone, description, address, locationType, cuisineType, mallId, link } = formData;
   if (!name || !phone || !description || !address || !locationType || !cuisineType) {
     throw new Error('Todos los campos del restaurante son obligatorios.');
   }
@@ -55,7 +55,7 @@ export const createRestaurant = async (restaurantRepository, formData, logoFile 
     phone,
     locationType,
     cuisineType,
-    mallName,
+    mallId,
     link: linkTrimmed,
     ownerId,
     logoUrl,
