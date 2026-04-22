@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2 } from 'lucide-react';
+import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
 import CustomerVerification from '../components/CustomerVerification';
 import { useCustomerVerification } from '../hooks/useCustomerVerification';
 import { useCustomerOrders } from '../hooks/useOrders';
@@ -17,7 +17,7 @@ import './PublicMenuPage.css';
  *
  * @param {{ authRepository: Object, restaurantId: string, tableNumber: string }} props
  */
-const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
+const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) => {
   const { isVerified, getSession, logout } = useCustomerVerification(authRepository);
 
   const session = getSession();
@@ -108,9 +108,16 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
 
   return (
     <div className="public-menu-container">
-      <button onClick={handleLogout} className="logout-btn" title="Cerrar sesión">
-        <LogOut size={20} />
-      </button>
+      <div className="menu-top-nav">
+        {onBack && (
+          <button onClick={onBack} className="back-btn" title="Volver">
+            <ArrowLeft size={20} />
+          </button>
+        )}
+        <button onClick={handleLogout} className="logout-btn" title="Cerrar sesión">
+          <LogOut size={20} />
+        </button>
+      </div>
 
       {/* Active orders and history */}
       <div className="menu-sections-wrapper">

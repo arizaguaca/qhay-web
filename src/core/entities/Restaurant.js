@@ -29,6 +29,7 @@ export const createRestaurant = (raw) => ({
   logoUrl: raw.logo_url ?? raw.LogoURL ?? raw.logoUrl ?? null,
   locationType: raw.location_type ?? raw.locationType ?? raw.restaurant_type ?? raw.restaurantType ?? '',
   cuisineType: raw.cuisine_type ?? raw.cuisineType ?? '',
+  cityId: raw.city_id ?? raw.cityId ?? '',
   mallId: raw.mall_id ?? raw.mallId ?? '',
   mallName: raw.mall_name ?? raw.mallName ?? raw.shopping_mall ?? raw.shoppingMall ?? '',
   link: raw.link ?? raw.Link ?? '',

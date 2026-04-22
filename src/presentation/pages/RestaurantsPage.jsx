@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, AlignLeft, MapPin, Phone, Image, ArrowRight, CheckCircle2, AlertCircle, Upload, Link, X, Plus, ChevronRight, Building2 } from 'lucide-react';
+import { Utensils, AlignLeft, MapPin, Phone, Image as ImageIcon, ArrowRight, CheckCircle2, AlertCircle, Upload, Link, X, Plus, ChevronRight, Building2, Navigation as NavigationIcon } from 'lucide-react';
 import { useRestaurants, useRestaurant } from '../hooks/useRestaurants';
 import { isStaff } from '../../core/entities/User';
 import { resolveImageUrl } from '../../data/api/httpClient';
@@ -41,30 +41,42 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
 
   const [formData, setFormData] = useState({
     name: '', description: '', address: '', phone: '',
-    locationType: '', cuisineType: '', mallId: '', link: '',
+    locationType: '', cuisineType: '', cityId: '', mallId: '', link: '',
     owner_id: ownerId, logo_url: '',
   });
 
   const [malls, setMalls] = useState([]);
+  const [cities, setCities] = useState([]);
   const [cuisineTypes, setCuisineTypes] = useState([]);
   const [showCustomCuisine, setShowCustomCuisine] = useState(false);
   const [customCuisine, setCustomCuisine] = useState('');
 
   React.useEffect(() => {
-    const loadCatalogs = async () => {
+    const loadInitialCatalogs = async () => {
       try {
-        const [mallsData, cuisineData] = await Promise.all([
-          catalogRepository.getMalls(),
+        const [citiesData, cuisineData] = await Promise.all([
+          catalogRepository.getCities(),
           catalogRepository.getCuisineTypes(ownerId)
         ]);
-        setMalls(mallsData);
+        setCities(citiesData);
         setCuisineTypes(cuisineData);
       } catch (err) {
         console.error('Error loading catalogs:', err);
       }
     };
-    loadCatalogs();
-  }, []);
+    loadInitialCatalogs();
+  }, [ownerId]);
+
+  // Fetch malls when cityId changes
+  React.useEffect(() => {
+    if (!formData.cityId) {
+      setMalls([]);
+      return;
+    }
+    catalogRepository.getMallsByCity(formData.cityId)
+      .then(setMalls)
+      .catch(err => console.error('Error loading malls for city:', err));
+  }, [formData.cityId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,6 +89,9 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
       const newState = { ...prev, [name]: value };
       // Reset mallId if locationType changes back to Stand-alone
       if (name === 'locationType' && value === 'Stand-alone') {
+        newState.mallId = '';
+      }
+      if (name === 'cityId') {
         newState.mallId = '';
       }
       return newState;
@@ -108,6 +123,9 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
     e.preventDefault();
     setSaveStatus('loading');
     try {
+      if (!formData.cityId) {
+        throw new Error('Debe seleccionar una ciudad.');
+      }
       if (formData.locationType === 'Food Court' && !formData.mallId) {
         throw new Error('Debe seleccionar un centro comercial para locales en Plazoleta de Comidas.');
       }
@@ -130,6 +148,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
         {
           ...formData,
           cuisineType: finalCuisineType,
+          cityId: formData.cityId,
           logoMode,
           logo_url: typeof formData.logo_url === 'string' ? formData.logo_url.trim() : formData.logo_url,
         },
@@ -157,7 +176,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
         setSaveStatus('idle');
         setFormData({
           name: '', description: '', address: '', phone: '',
-          locationType: '', cuisineType: '', mallId: '', link: '',
+          locationType: '', cuisineType: '', cityId: '', mallId: '', link: '',
           owner_id: ownerId, logo_url: '',
         });
         setPreviewUrl('');
@@ -289,6 +308,25 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                 <div className="input-wrapper">
                   <MapPin className="input-icon" size={18} />
                   <input type="text" id="address" name="address" value={formData.address} onChange={handleChange} placeholder="Dirección física" required />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="cityId">Ciudad</label>
+                <div className="input-wrapper">
+                  <NavigationIcon className="input-icon" size={18} />
+                  <select
+                    id="cityId"
+                    name="cityId"
+                    value={formData.cityId}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Seleccione una ciudad...</option>
+                    {cities.map((city) => (
+                      <option key={city.id} value={city.id}>{city.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -451,7 +489,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                 <div className="logo-content">
                   {logoMode === 'url' ? (
                     <div className="input-wrapper">
-                      <Image className="input-icon" size={18} />
+                      <ImageIcon className="input-icon" size={18} />
                       <input
                         type="text"
                         inputMode="url"

@@ -14,6 +14,18 @@ export const catalogRepository = {
     return await res.json();
   },
 
+  async getCities() {
+    const res = await apiFetch('/cities');
+    if (!res.ok) throw new Error('Error al cargar ciudades.');
+    return await res.json();
+  },
+
+  async getMallsByCity(cityId) {
+    const res = await apiFetch(`/malls/city/${cityId}`);
+    if (!res.ok) throw new Error('Error al cargar centros comerciales de la ciudad.');
+    return await res.json();
+  },
+
   async createCuisineType(name, ownerId) {
     const res = await apiFetch('/cuisine-types', {
       method: 'POST',

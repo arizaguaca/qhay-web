@@ -31,9 +31,9 @@ export const getRestaurantById = (restaurantRepository, restaurantId) => {
  * @returns {Promise<import('../entities/Restaurant').Restaurant>}
  */
 export const createRestaurant = async (restaurantRepository, formData, logoFile = null) => {
-  const { name, phone, description, address, locationType, cuisineType, mallId, link } = formData;
-  if (!name || !phone || !description || !address || !locationType || !cuisineType) {
-    throw new Error('Todos los campos del restaurante son obligatorios.');
+  const { name, phone, description, address, locationType, cuisineType, cityId, mallId, link } = formData;
+  if (!name || !phone || !description || !address || !locationType || !cuisineType || !cityId) {
+    throw new Error('Todos los campos del restaurante (incluyendo la ciudad) son obligatorios.');
   }
 
   const ownerId = formData.owner_id ?? formData.ownerId;
@@ -55,6 +55,7 @@ export const createRestaurant = async (restaurantRepository, formData, logoFile 
     phone,
     locationType,
     cuisineType,
+    cityId,
     mallId,
     link: linkTrimmed,
     ownerId,

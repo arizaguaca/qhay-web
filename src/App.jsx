@@ -5,6 +5,7 @@ import LoginPage from './presentation/pages/LoginPage';
 import RegisterPage from './presentation/pages/RegisterPage';
 import RestaurantsPage from './presentation/pages/RestaurantsPage';
 import PublicMenuPage from './presentation/pages/PublicMenuPage';
+import PublicExplorePage from './presentation/pages/PublicExplorePage';
 import './App.css';
 
 /**
@@ -31,7 +32,7 @@ function App({ authRepository, restaurantRepository }) {
     try {
       const saved = localStorage.getItem('qhay_user');
       if (saved) setUser(JSON.parse(saved));
-    } catch {}
+    } catch { }
 
     setIsAuthChecking(false);
   }, []);
@@ -55,6 +56,10 @@ function App({ authRepository, restaurantRepository }) {
         authRepository={authRepository}
         restaurantId={publicRoute.restaurantId}
         tableNumber={publicRoute.tableNumber}
+        onBack={() => {
+          setPublicRoute(null);
+          window.history.pushState(null, '', '/');
+        }}
       />
     );
   }
@@ -62,23 +67,6 @@ function App({ authRepository, restaurantRepository }) {
   return (
     <div className="app-container">
       <header>
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-          <h1>Qhay</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: user ? '1rem' : '0' }}>
-            Gestión centralizada de restaurantes y menús
-          </p>
-
-          {user && (
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                className="btn-primary active"
-                style={{ background: 'var(--primary)', border: '1px solid var(--border)', padding: '0.6rem 1.2rem' }}
-              >
-                <Utensils size={18} /> Restaurantes
-              </button>
-            </div>
-          )}
-        </motion.div>
 
         <div className="user-nav">
           {user && (
@@ -116,6 +104,10 @@ function App({ authRepository, restaurantRepository }) {
                   authRepository={authRepository}
                   onSwitchToLogin={() => setCurrentView('login')}
                 />
+              </motion.div>
+            ) : currentView === 'explore' ? (
+              <motion.div key="explore" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <PublicExplorePage onSelectRestaurant={(id) => setPublicRoute({ restaurantId: id })} />
               </motion.div>
             ) : (
               <motion.div key="restaurants" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>

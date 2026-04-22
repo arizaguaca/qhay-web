@@ -18,6 +18,7 @@ const buildRestaurantFormData = (data, logoFile = null) => {
   if (data.phone)          fd.append('phone',          data.phone);
   if (data.locationType)   fd.append('locationType',   data.locationType);
   if (data.cuisineType)    fd.append('cuisineType',    data.cuisineType);
+  if (data.cityId)         fd.append('cityId',         data.cityId);
   if (data.mallId)         fd.append('mallId',         data.mallId);
   // ownerId puede venir como ownerId o como owner_id (legacy)
   const ownerId = data.ownerId ?? data.owner_id ?? '';
@@ -36,6 +37,13 @@ const buildRestaurantFormData = (data, logoFile = null) => {
  * @implements {import('../../core/repositories/IRestaurantRepository').IRestaurantRepository}
  */
 export const restaurantRepository = {
+  async getAll() {
+    const res = await apiFetch('/restaurants');
+    if (!res.ok) throw new Error('Error al cargar los restaurantes.');
+    const data = await res.json();
+    return (data || []).map(mapRestaurant);
+  },
+
   async getByOwner(ownerId) {
     const res = await apiFetch(`/restaurants/owner/${ownerId}`);
     if (res.ok) {
