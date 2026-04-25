@@ -38,16 +38,17 @@ export const ORDER_STATUS_META = {
  */
 export const createOrder = (raw) => ({
   id: raw.id ?? raw.ID ?? '',
-  restaurantId: String(raw.restaurant_id ?? raw.RestaurantID ?? ''),
-  customerId: raw.customer_id ?? raw.CustomerID ?? '',
-  tableNumber: raw.table_number ?? raw.TableNumber ?? 1,
-  totalPrice: raw.total_price ?? raw.TotalPrice ?? 0,
+  restaurantId: String(raw.restaurant_id ?? raw.restaurantId ?? raw.RestaurantID ?? ''),
+  customerId: raw.customer_id ?? raw.customerId ?? raw.CustomerID ?? '',
+  tableNumber: raw.table_number ?? raw.tableNumber ?? raw.TableNumber ?? 1,
+  totalPrice: raw.total_price ?? raw.totalPrice ?? raw.TotalPrice ?? 0,
   status: (raw.status ?? raw.Status ?? 'pending').toLowerCase(),
   items: (raw.items ?? []).map((item) => ({
-    menuItemId: item.menu_item_id ?? item.MenuItemID ?? '',
-    menuItemName: item.menu_item_name ?? item.MenuItemName ?? '',
+    menuItemId: item.menu_item_id ?? item.menuItemId ?? item.MenuItemID ?? '',
+    menuItemName: item.menu_item_name ?? item.menuItemName ?? item.name ?? item.MenuItemName ?? '',
     quantity: item.quantity ?? 1,
     price: item.price ?? 0,
+    notes: item.notes ?? '',
   })),
 });
 

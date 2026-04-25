@@ -12,7 +12,7 @@
  * @returns {Customer}
  */
 export const createCustomer = (raw) => ({
-  customerId: raw.customer_id ?? raw.CustomerID ?? '',
+  customerId: raw.entityId ?? raw.customer_id ?? raw.CustomerID ?? raw.customerId ?? raw.customer?.CustomerID ?? raw.customer?.id ?? raw.id ?? '',
   phone: raw.phone ?? '',
   verified: raw.verified ?? false,
   customer: raw.customer ?? null,

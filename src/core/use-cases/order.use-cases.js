@@ -42,15 +42,17 @@ export const placeOrder = (orderRepository, { restaurantId, customerId, tableNum
   const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const orderPayload = {
-    restaurant_id: restaurantId,
-    customer_id: customerId,
-    table_number: parseInt(tableNumber ?? 1),
-    total_price: totalPrice,
+    restaurantId: restaurantId,
+    customerId: customerId,
+    tableNumber: parseInt(tableNumber ?? 1),
+    totalPrice: totalPrice,
+    status: 'pending',
     items: cart.map((item) => ({
-      menu_item_id: item.id ?? item.ID,
-      menu_item_name: item.name,
+      menuItemId: item.id ?? item.ID,
+      name: item.name,
       quantity: item.quantity,
       price: item.price,
+      notes: item.notes || '',
     })),
   };
 

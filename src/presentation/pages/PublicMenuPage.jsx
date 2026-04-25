@@ -21,9 +21,9 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const { isVerified, getSession, logout } = useCustomerVerification(authRepository);
 
   const session = getSession();
-  const customerId = session.customer_id ?? null;
+  const customerId = session.customer_id || session.customer?.CustomerID || session.customer?.id || session.phone || null;
 
-  const { items: menu, loading: menuLoading, error: menuError } = useMenu(menuRepository, restaurantId);
+  const { items: menu, categories, loading: menuLoading, error: menuError } = useMenu(menuRepository, restaurantId);
   const { orders, submitting, submitOrder, confirmPayment } = useCustomerOrders(
     orderRepository, customerId, restaurantId
   );
@@ -31,6 +31,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const [restaurant, setRestaurant] = React.useState(null);
   const [resLoading, setResLoading] = React.useState(true);
   const [cart, setCart] = useState([]);
+  const [itemNotes, setItemNotes] = useState({});
   const [showHistory, setShowHistory] = useState(false);
 
   // Load restaurant info on mount
@@ -66,8 +67,13 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
     try {
-      await submitOrder(cart, tableNumber);
+      const cartWithNotes = cart.map((item) => ({
+        ...item,
+        notes: itemNotes[item.id] || '',
+      }));
+      await submitOrder(cartWithNotes, tableNumber);
       setCart([]);
+      setItemNotes({});
     } catch (err) {
       alert(err.message);
     }
@@ -106,6 +112,13 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const activeOrders = orders.filter(isActiveOrder);
   const historyOrders = orders.filter((o) => !isActiveOrder(o));
 
+  const groupedMenu = menu.reduce((acc, item) => {
+    const cat = categories.find(c => c.id === item.categoryId) || { name: 'Otros', id: item.categoryId };
+    if (!acc[cat.name]) acc[cat.name] = [];
+    acc[cat.name].push(item);
+    return acc;
+  }, {});
+
   return (
     <div className="public-menu-container">
       <div className="menu-top-nav">
@@ -121,57 +134,60 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
       {/* Active orders and history */}
       <div className="menu-sections-wrapper">
-        <AnimatePresence>
-          {activeOrders.map((order, idx) => {
-            const meta = ORDER_STATUS_META[order.status] || { name: order.status, color: 'var(--border)' };
-            return (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="glass-card active-order-card"
-                style={{ borderLeft: `5px solid ${meta.color}` }}
-              >
-                <div className="order-header">
-                  <div className="order-info-left">
-                    <div className="order-icon-box" style={{ background: `${meta.color}20` }}>
-                      <ShoppingBag size={20} color={meta.color} />
+        <div className="orders-grid">
+          <AnimatePresence>
+            {activeOrders.map((order, idx) => {
+              const meta = ORDER_STATUS_META[order.status] || { name: order.status, color: 'var(--border)' };
+              return (
+                <motion.div
+                  key={order.id}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="glass-card active-order-card"
+                  style={{ borderLeft: `5px solid ${meta.color}`, marginBottom: 0 }}
+                >
+                  <div className="order-header">
+                    <div className="order-info-left">
+                      <div className="order-icon-box" style={{ background: `${meta.color}20` }}>
+                        <ShoppingBag size={20} color={meta.color} />
+                      </div>
+                      <div>
+                        <span className="order-text-main">PEDIDO #{idx + 1}</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ticket: {String(order.id).slice(-6)}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="order-text-main">PEDIDO #{idx + 1}</span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ticket: {String(order.id).slice(-6)}</span>
-                    </div>
-                  </div>
-                  <span className="status-label" style={{ background: meta.color }}>
-                    {meta.name.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="order-details-box">
-                  {order.items?.map((it, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{it.quantity}x {it.menuItemName || 'Plato'}</span>
-                      <span>${(it.price * it.quantity).toLocaleString()}</span>
-                    </div>
-                  ))}
-                  <div className="total-row">
-                    <span>Total:</span>
-                    <span style={{ color: 'white' }}>${(order.totalPrice || 0).toLocaleString()}</span>
+                    <span className="status-label" style={{ background: meta.color }}>
+                      {meta.name.toUpperCase()}
+                    </span>
                   </div>
 
-                  {order.status === 'delivered' && (
-                    <button
-                      onClick={() => { if (confirm(`¿Confirmas el pago de $${(order.totalPrice || 0).toLocaleString()}?`)) confirmPayment(order.id); }}
-                      className="pay-btn"
-                    >
-                      PAGAR MI CUENTA
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+                  <div className="order-details-box">
+                    {order.items?.map((it, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{it.quantity}x {it.menuItemName || 'Plato'}</span>
+                        <span>${(it.price * it.quantity).toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div className="total-row">
+                      <span>Total:</span>
+                      <span style={{ color: 'white' }}>${(order.totalPrice || 0).toLocaleString()}</span>
+                    </div>
+
+                    {order.status === 'delivered' && (
+                      <button
+                        onClick={() => { if (confirm(`¿Confirmas el pago de $${(order.totalPrice || 0).toLocaleString()}?`)) confirmPayment(order.id); }}
+                        className="pay-btn"
+                      >
+                        PAGAR
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
 
           {historyOrders.length > 0 && (
             <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
@@ -181,20 +197,24 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
             </div>
           )}
 
-          {showHistory && historyOrders.map((order) => (
-            <motion.div key={order.id} className="history-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ color: order.status === 'paid' ? '#4ade80' : '#f87171', fontWeight: '900', fontSize: '0.85rem' }}>
-                    {order.status === 'paid' ? 'COBRADO ✓' : 'CANCELADO ✗'}
-                  </span>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Ticket: {String(order.id).slice(-4)}</div>
-                </div>
-                <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>${(order.totalPrice || 0).toLocaleString()}</div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+          {showHistory && (
+            <div className="orders-grid">
+              {historyOrders.map((order) => (
+                <motion.div key={order.id} className="history-card" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ color: order.status === 'paid' ? '#4ade80' : '#f87171', fontWeight: '900', fontSize: '0.85rem' }}>
+                        {order.status === 'paid' ? 'COBRADO ✓' : 'CANCELADO ✗'}
+                      </span>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Ticket: {String(order.id).slice(-4)}</div>
+                    </div>
+                    <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>${(order.totalPrice || 0).toLocaleString()}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
 
         <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem' }}>{restaurant.description}</p>
       </div>
@@ -209,62 +229,104 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {menu.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card item-card"
-            >
-              <div className="item-img-box">
-                <img
-                  src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=200'}
-                  alt={item.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 className="item-name-h3">{item.name}</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{item.description}</p>
+        {Object.keys(groupedMenu).map((catName) => (
+          <div key={catName} style={{ marginBottom: '2.5rem' }}>
+            <h3 style={{ 
+              fontSize: '1.4rem', 
+              marginBottom: '1.2rem', 
+              color: 'var(--primary)', 
+              borderBottom: '2px solid rgba(var(--primary-rgb), 0.2)',
+              paddingBottom: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <Utensils size={20} />
+              {catName}
+            </h3>
+            
+            <div className="menu-customer-grid">
+              {groupedMenu[catName].map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="glass-card item-card"
+                >
+                  <div className="item-img-box">
+                    <img
+                      src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=200'}
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span className="item-price-span">${item.price}</span>
-                    {item.isAvailable !== false ? (
-                      <div className="qty-control">
-                        <button onClick={() => removeFromCart(item)} className="qty-btn" style={{ background: 'rgba(255,255,255,0.1)' }}>-</button>
-                        <span style={{ fontWeight: 'bold', minWidth: '15px', textAlign: 'center' }}>{getQuantity(item.id)}</span>
-                        <button onClick={() => addToCart(item)} className="qty-btn" style={{ background: 'var(--primary)' }}>+</button>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h3 className="item-name-h3">{item.name}</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{item.description}</p>
                       </div>
-                    ) : (
-                      <span style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: '700' }}>AGOTADO</span>
-                    )}
+                      <div style={{ textAlign: 'right' }}>
+                        <span className="item-price-span">${item.price}</span>
+                        {item.isAvailable !== false ? (
+                          <div className="qty-control">
+                            <button onClick={() => removeFromCart(item)} className="qty-btn" style={{ background: 'rgba(255,255,255,0.1)' }}>-</button>
+                            <span style={{ fontWeight: 'bold', minWidth: '15px', textAlign: 'center' }}>{getQuantity(item.id)}</span>
+                            <button onClick={() => addToCart(item)} className="qty-btn" style={{ background: 'var(--primary)' }}>+</button>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: '700' }}>AGOTADO</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Floating cart */}
       <AnimatePresence>
         {cart.length > 0 && (
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="floating-cart-bar">
-            <div className="glass-card floating-cart-content">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                <div className="cart-icon-circle">
-                  <ShoppingBag size={22} color="white" />
-                  <span className="cart-qty-badge">{totalItems}</span>
-                </div>
-                <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>${cartTotal.toLocaleString()}</p>
+            <div className="glass-card floating-cart-panel">
+              {/* Cart item list */}
+              <div className="cart-items-list">
+                {cart.map((cartItem) => (
+                  <div key={cartItem.id} className="cart-item-row">
+                    <div className="cart-item-info">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="cart-item-name">{cartItem.quantity}x {cartItem.name}</span>
+                        <span className="cart-item-price">${(cartItem.price * cartItem.quantity).toLocaleString()}</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nota: ej. sin cebolla, extra salsa..."
+                        value={itemNotes[cartItem.id] || ''}
+                        onChange={(e) => setItemNotes(prev => ({ ...prev, [cartItem.id]: e.target.value }))}
+                        className="cart-note-input"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <button onClick={handlePlaceOrder} disabled={submitting} className="btn-primary" style={{ padding: '0.7rem 1.8rem', borderRadius: '20px' }}>
-                {submitting ? <Loader2 className="spin" size={18} /> : 'Pedir Ahora'}
-              </button>
+
+              {/* Cart footer */}
+              <div className="cart-footer">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  <div className="cart-icon-circle">
+                    <ShoppingBag size={20} color="white" />
+                    <span className="cart-qty-badge">{totalItems}</span>
+                  </div>
+                  <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>${cartTotal.toLocaleString()}</p>
+                </div>
+                <button onClick={handlePlaceOrder} disabled={submitting} className="btn-primary" style={{ padding: '0.7rem 1.8rem', borderRadius: '20px' }}>
+                  {submitting ? <Loader2 className="spin" size={18} /> : 'Pedir Ahora'}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

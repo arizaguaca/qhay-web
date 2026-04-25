@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Clock, Loader2, Utensils } from 'lucide-react';
+import { Package, Clock, Loader2, Utensils, MessageSquareText } from 'lucide-react';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
 import { ORDER_STATUS_META } from '../../../core/entities/Order';
@@ -56,9 +56,30 @@ const OrderManager = ({ restaurantId }) => {
 
                   <div className="order-items" style={{ marginBottom: '1.5rem' }}>
                     {order.items?.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.9rem' }}>
-                        <span><span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{item.quantity}x</span> {item.menuItemName || 'Plato'}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>${(item.price * item.quantity).toLocaleString()}</span>
+                      <div key={i} style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                          <span><span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{item.quantity}x</span> {item.menuItemName || 'Plato'}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>${(item.price * item.quantity).toLocaleString()}</span>
+                        </div>
+                        {item.notes && (
+                          <div style={{ 
+                            marginTop: '0.4rem', 
+                            padding: '0.5rem 0.8rem', 
+                            background: 'rgba(251, 191, 36, 0.12)', 
+                            border: '1px solid rgba(251, 191, 36, 0.3)',
+                            borderRadius: '8px', 
+                            fontSize: '0.9rem', 
+                            fontWeight: '600',
+                            color: '#fbbf24',
+                            lineHeight: '1.4',
+                            letterSpacing: '0.01em',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem'
+                          }}>
+                            <MessageSquareText size={15} style={{ flexShrink: 0, marginTop: '1px' }} /> {item.notes}
+                          </div>
+                        )}
                       </div>
                     ))}
                     <div style={{ textAlign: 'right', marginTop: '1rem', fontWeight: '900', fontSize: '1.2rem', color: 'var(--primary)' }}>
