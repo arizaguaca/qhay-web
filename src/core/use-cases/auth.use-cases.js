@@ -23,11 +23,26 @@ export const loginUser = async (authRepository, credentials) => {
  * @returns {Promise<void>}
  */
 export const registerUser = async (authRepository, data) => {
-  const { name, email, phone, password, role } = data;
+  const { fullName, email, phone, password } = data;
 
-  if (!name || !email || !password) {
+  if (!fullName || !email || !password) {
     throw new Error('Nombre, correo y contraseña son obligatorios.');
   }
 
-  return authRepository.register({ name, email, phone, password, role, isVerified: false });
+  return authRepository.register({ fullName, email, phone, password, isVerified: false });
+};
+
+/**
+ * verifyUser — Use case: verifies a user account with OTP.
+ *
+ * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
+ * @param {string} email
+ * @param {string} code
+ * @returns {Promise<void>}
+ */
+export const verifyUser = async (authRepository, email, code) => {
+  if (!email || !code) {
+    throw new Error('El correo y el código son obligatorios.');
+  }
+  return authRepository.verifyCode(email, code);
 };

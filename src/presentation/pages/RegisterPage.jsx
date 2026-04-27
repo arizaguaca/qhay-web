@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Shield, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, ShieldCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import './RegisterPage.css';
 
@@ -11,13 +11,15 @@ import './RegisterPage.css';
  * @param {{ authRepository: Object, onSwitchToLogin: Function }} props
  */
 const RegisterPage = ({ authRepository, onSwitchToLogin }) => {
-  const { register, status, error } = useAuth(authRepository);
+  const { register, verify, status, error } = useAuth(authRepository);
+  const [step, setStep] = useState('register'); // 'register' | 'verify'
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
     password: '',
-    role: 'owner',
   });
 
   const handleChange = (e) => {
@@ -29,14 +31,48 @@ const RegisterPage = ({ authRepository, onSwitchToLogin }) => {
     e.preventDefault();
     try {
       await register(formData);
-      setFormData({ name: '', email: '', phone: '', password: '', role: 'owner' });
+      setRegisteredEmail(formData.email);
+      setStep('verify');
     } catch {
       // error already set in hook
     }
   };
 
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    const code = otp.join('');
+    try {
+      await verify(registeredEmail, code);
+    } catch {}
+  };
+
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.substring(value.length - 1);
+    setOtp(newOtp);
+    if (value && index < 5) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus();
+    }
+  };
+
   const isLoading = status === 'loading';
-  const isSuccess = status === 'success';
+  const isVerified = status === 'verified';
+
+  useEffect(() => {
+    if (isVerified && onSwitchToLogin) {
+      const timer = setTimeout(() => {
+        onSwitchToLogin();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVerified, onSwitchToLogin]);
 
   return (
     <div className="register-container">
@@ -48,82 +84,102 @@ const RegisterPage = ({ authRepository, onSwitchToLogin }) => {
       >
         <div className="register-header">
           <div className="icon-badge">
-            <User size={32} color="var(--primary)" />
+            {step === 'register' ? <User size={32} color="var(--primary)" /> : <ShieldCheck size={32} color="var(--primary)" />}
           </div>
-          <h2>Registro de Usuario</h2>
-          <p>Completa los datos para crear una nueva cuenta</p>
+          <h2>{step === 'register' ? 'Registro de Usuario' : 'Verifica tu cuenta'}</h2>
+          <p>{step === 'register' ? 'Completa los datos para crear una nueva cuenta' : `Ingresa el código enviado a ${registeredEmail}`}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="register-form">
-          <div className="form-group">
-            <label htmlFor="name">Nombre Completo</label>
-            <div className="input-wrapper">
-              <User className="input-icon" size={18} />
-              <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} placeholder="Juan Pérez" required />
+        {step === 'register' ? (
+          <form onSubmit={handleSubmit} className="register-form">
+            <div className="form-group">
+              <label htmlFor="fullName">Nombre Completo</label>
+              <div className="input-wrapper">
+                <User className="input-icon" size={18} />
+                <input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Juan Pérez" required />
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Correo Electrónico</label>
-            <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
-              <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} placeholder="juan@ejemplo.com" required />
+            <div className="form-group">
+              <label htmlFor="email">Correo Electrónico</label>
+              <div className="input-wrapper">
+                <Mail className="input-icon" size={18} />
+                <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} placeholder="juan@ejemplo.com" required />
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="phone">Teléfono</label>
-            <div className="input-wrapper">
-              <User className="input-icon" size={18} />
-              <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="+573001234567" required />
+            <div className="form-group">
+              <label htmlFor="phone">Teléfono</label>
+              <div className="input-wrapper">
+                <User className="input-icon" size={18} />
+                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="+573001234567" required />
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
-            <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
-              <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" required />
+            <div className="form-group">
+              <label htmlFor="password">Contraseña</label>
+              <div className="input-wrapper">
+                <Lock className="input-icon" size={18} />
+                <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" required />
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="role">Rol de Usuario</label>
-            <div className="input-wrapper">
-              <Shield className="input-icon" size={18} />
-              <select id="role" name="role" value={formData.role} onChange={handleChange} required>
-                <option value="owner">Propietario</option>
-                <option value="user">Usuario Estándar</option>
-                <option value="admin">Administrador</option>
-                <option value="editor">Editor</option>
-              </select>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              className={`btn-primary submit-btn ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Registrando...' : <><span>Registrar Usuario</span> <ArrowRight size={18} /></>}
+            </motion.button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="register-form">
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '2rem' }}>
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  id={`otp-${idx}`}
+                  type="text"
+                  inputMode="numeric"
+                  value={digit}
+                  onChange={(e) => handleOtpChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
+                  style={{ width: '40px', height: '50px', textAlign: 'center', fontSize: '1.25rem', fontWeight: '700', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '10px', color: 'white' }}
+                />
+              ))}
             </div>
-          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className={`btn-primary submit-btn ${isLoading ? 'loading' : ''}`}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Registrando...' : <><span>Registrar Usuario</span> <ArrowRight size={18} /></>}
-          </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              className={`btn-primary submit-btn ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading || otp.join('').length < 6}
+            >
+              {isLoading ? 'Verificando...' : <><span>Verificar Código</span> <ArrowRight size={18} /></>}
+            </motion.button>
+            
+            <button type="button" onClick={() => setStep('register')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', marginTop: '1rem', cursor: 'pointer', fontSize: '0.85rem', width: '100%' }}>
+              Volver al registro
+            </button>
+          </form>
+        )}
 
-          {isSuccess && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="alert alert-success">
-              <CheckCircle2 size={18} />
-              <span>¡Usuario registrado exitosamente!</span>
-            </motion.div>
-          )}
+        {isVerified && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="alert alert-success" style={{ marginTop: '1rem' }}>
+            <CheckCircle2 size={18} />
+            <span>¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.</span>
+          </motion.div>
+        )}
 
-          {status === 'error' && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="alert alert-error">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </motion.div>
-          )}
-        </form>
+        {status === 'error' && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="alert alert-error" style={{ marginTop: '1rem' }}>
+            <AlertCircle size={18} />
+            <span>{error}</span>
+          </motion.div>
+        )}
 
         {onSwitchToLogin && (
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>

@@ -13,7 +13,7 @@ const SESSION_KEY = 'qhay_customer_session';
  */
 export const useCustomerVerification = (authRepository) => {
   const [step, setStep] = useState('phone'); // 'phone' | 'otp'
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,23 +35,23 @@ export const useCustomerVerification = (authRepository) => {
     }
   };
 
-  const createCustomer = useCallback(async ({ name: customerName, phone: phoneNumber }) => {
+  const createCustomer = useCallback(async ({ fullName: customerFullName, phone: phoneNumber }) => {
     setLoading(true);
     setError('');
     try {
-      const normalizedName = (customerName ?? '').trim();
+      const normalizedFullName = (customerFullName ?? '').trim();
       const normalizedPhone = (phoneNumber ?? '').trim();
 
       await createCustomerVerification(authRepository, {
-        name: normalizedName,
+        fullName: normalizedFullName,
         phone: normalizedPhone,
         channel: 'whatsapp',
       });
 
-      setName(normalizedName);
+      setFullName(normalizedFullName);
       setPhone(normalizedPhone);
 
-      const session = { name: normalizedName, phone: normalizedPhone, verified: false };
+      const session = { fullName: normalizedFullName, phone: normalizedPhone, verified: false };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
       setStep('otp');
@@ -69,7 +69,7 @@ export const useCustomerVerification = (authRepository) => {
     setError('');
     try {
       const customer = await confirmCustomerOtp(authRepository, phone, code);
-      const session = { name, phone, verified: true, customer_id: customer.customerId, customer: customer.customer };
+      const session = { fullName, phone, verified: true, customer_id: customer.customerId, customer: customer.customer };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       return customer;
     } catch (err) {
@@ -84,5 +84,5 @@ export const useCustomerVerification = (authRepository) => {
     localStorage.removeItem(SESSION_KEY);
   }, []);
 
-  return { step, setStep, name, setName, phone, loading, error, isVerified, getSession, createCustomer, verifyOtp, logout };
+  return { step, setStep, fullName, setFullName, phone, loading, error, isVerified, getSession, createCustomer, verifyOtp, logout };
 };

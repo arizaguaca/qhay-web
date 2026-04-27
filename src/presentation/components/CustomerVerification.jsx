@@ -10,11 +10,11 @@ import { useCustomerVerification } from '../hooks/useCustomerVerification';
  * @param {{ authRepository: Object, onVerified: Function }} props
  */
 const CustomerVerification = ({ authRepository, onVerified }) => {
-  const { step, setStep, name, setName, phone, loading, error, createCustomer, verifyOtp } = useCustomerVerification(authRepository);
+  const { step, setStep, fullName, setFullName, phone, loading, error, createCustomer, verifyOtp } = useCustomerVerification(authRepository);
   const [countryCode, setCountryCode] = useState('+57');
   const [isCountryOpen, setIsCountryOpen] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
+  const [fullNameInput, setFullNameInput] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const countryRef = useRef(null);
 
@@ -41,9 +41,9 @@ const CustomerVerification = ({ authRepository, onVerified }) => {
   const handleCreateCustomer = async (e) => {
     e.preventDefault();
     try {
-      setName(nameInput);
+      setFullName(fullNameInput);
       const fullPhone = `${countryCode}${phoneInput}`.replace(/\s+/g, '');
-      await createCustomer({ name: nameInput, phone: fullPhone });
+      await createCustomer({ fullName: fullNameInput, phone: fullPhone });
     } catch {}
   };
 
@@ -97,8 +97,8 @@ const CustomerVerification = ({ authRepository, onVerified }) => {
                   <input
                     type="text"
                     placeholder="Tu nombre"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
+                    value={fullNameInput}
+                    onChange={(e) => setFullNameInput(e.target.value)}
                     style={{ paddingLeft: '3rem' }}
                     required
                   />

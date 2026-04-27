@@ -29,10 +29,10 @@ export const authRepository = {
     }
   },
 
-  async createCustomer({ name, phone, channel }) {
+  async createCustomer({ fullName, phone, channel }) {
     const res = await apiFetch('/customers', {
       method: 'POST',
-      body: JSON.stringify({ name, phone, channel }),
+      body: JSON.stringify({ fullName, phone, channel }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.message || data.error || 'Error al crear el cliente.');

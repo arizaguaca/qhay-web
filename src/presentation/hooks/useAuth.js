@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { loginUser, registerUser } from '../../core/use-cases/auth.use-cases';
+import { loginUser, registerUser, verifyUser } from '../../core/use-cases/auth.use-cases';
 
 const SESSION_KEY = 'qhay_user';
 
@@ -50,11 +50,24 @@ export const useAuth = (authRepository) => {
     }
   }, [authRepository]);
 
+  const verify = useCallback(async (email, code) => {
+    setStatus('loading');
+    setError('');
+    try {
+      await verifyUser(authRepository, email, code);
+      setStatus('verified');
+    } catch (err) {
+      setError(err.message);
+      setStatus('error');
+      throw err;
+    }
+  }, [authRepository]);
+
   const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
     setUser(null);
     setStatus('idle');
   }, []);
 
-  return { user, status, error, login, register, logout };
+  return { user, status, error, login, register, verify, logout };
 };
