@@ -10,26 +10,26 @@ import {
  * useRestaurants — Manages owner's restaurant list and creation.
  *
  * @param {import('../../core/repositories/IRestaurantRepository').IRestaurantRepository} restaurantRepository
- * @param {string | null} ownerId
+ * @param {string | null} userId
  */
-export const useRestaurants = (restaurantRepository, ownerId) => {
+export const useRestaurants = (restaurantRepository, userId) => {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const fetchRestaurants = useCallback(async () => {
-    if (!ownerId) return;
+    if (!userId) return;
     setLoading(true);
     setError('');
     try {
-      const data = await getRestaurantsByOwner(restaurantRepository, ownerId);
+      const data = await getRestaurantsByOwner(restaurantRepository, userId);
       setRestaurants(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [restaurantRepository, ownerId]);
+  }, [restaurantRepository, userId]);
 
   useEffect(() => {
     fetchRestaurants();

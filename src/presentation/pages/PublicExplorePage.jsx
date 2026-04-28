@@ -32,7 +32,7 @@ const PublicExplorePage = ({ onSelectRestaurant }) => {
 
   const filteredRestaurants = restaurants.filter(r => 
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.cuisineType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.cuisineId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     getCityName(r.cityId).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -78,7 +78,7 @@ const PublicExplorePage = ({ onSelectRestaurant }) => {
                     src={resolveImageUrl(rest.logoUrl) || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500'} 
                     alt={rest.name} 
                   />
-                  <div className="category-badge">{rest.cuisineType}</div>
+                  <div className="category-badge">{rest.cuisineId}</div>
                 </div>
                 <div className="card-content">
                   <h3>{rest.name}</h3>

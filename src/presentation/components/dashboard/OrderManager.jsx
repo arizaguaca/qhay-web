@@ -59,7 +59,7 @@ const OrderManager = ({ restaurantId }) => {
                       <div key={i} style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                           <span><span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{item.quantity}x</span> {item.menuItemName || 'Plato'}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>${(item.price * item.quantity).toLocaleString()}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>${(item.unitPrice * item.quantity).toLocaleString()}</span>
                         </div>
                         {item.notes && (
                           <div style={{ 

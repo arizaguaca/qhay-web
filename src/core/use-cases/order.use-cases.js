@@ -32,7 +32,7 @@ export const getOrdersByCustomer = async (orderRepository, customerId, restauran
  * @param {string} params.restaurantId
  * @param {string} params.customerId
  * @param {number} params.tableNumber
- * @param {Array} params.cart - array of cart items with price and quantity
+ * @param {Array} params.cart - array of cart items with unitPrice and quantity
  * @returns {Promise<import('../entities/Order').Order>}
  */
 export const placeOrder = (orderRepository, { restaurantId, customerId, tableNumber, cart }) => {
@@ -51,7 +51,7 @@ export const placeOrder = (orderRepository, { restaurantId, customerId, tableNum
       menuItemId: item.id ?? item.ID,
       name: item.name,
       quantity: item.quantity,
-      price: item.price,
+      unitPrice: item.price,
       notes: item.notes || '',
     })),
   };

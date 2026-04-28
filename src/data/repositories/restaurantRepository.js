@@ -11,18 +11,18 @@ const buildRestaurantFormData = (data, logoFile = null) => {
   const fd = new FormData();
 
   // Mapeo explícito para que los nombres de campo coincidan EXACTAMENTE con el backend
-  // Referencia: curl -F "name=..." -F "ownerId=..." -F "locationType=..." -F "cuisineType=..." -F "logo=@file"
+  // Referencia: curl -F "name=..." -F "userId=..." -F "locationType=..." -F "cuisineId=..." -F "logo=@file"
   if (data.name)           fd.append('name',           data.name);
   if (data.description)    fd.append('description',    data.description);
   if (data.address)        fd.append('address',        data.address);
   if (data.phone)          fd.append('phone',          data.phone);
   if (data.locationType)   fd.append('locationType',   data.locationType);
-  if (data.cuisineType)    fd.append('cuisineType',    data.cuisineType);
+  if (data.cuisineId)      fd.append('cuisineId',      data.cuisineId);
   if (data.cityId)         fd.append('cityId',         data.cityId);
   if (data.mallId)         fd.append('mallId',         data.mallId);
-  // ownerId puede venir como ownerId o como owner_id (legacy)
-  const ownerId = data.ownerId ?? data.owner_id ?? '';
-  if (ownerId)             fd.append('ownerId',        ownerId);
+  // userId puede venir como userId, ownerId o como owner_id (legacy)
+  const userId = data.userId ?? data.ownerId ?? data.owner_id ?? '';
+  if (userId)              fd.append('userId',         userId);
   if (data.link)           fd.append('link',           data.link);
   // logo como URL de texto (modo URL)
   if (data.logoUrl)        fd.append('logoUrl',        data.logoUrl);

@@ -166,7 +166,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                     {order.items?.map((it, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
                         <span style={{ color: 'var(--text-muted)' }}>{it.quantity}x {it.menuItemName || 'Plato'}</span>
-                        <span>${(it.price * it.quantity).toLocaleString()}</span>
+                        <span>${(it.unitPrice * it.quantity).toLocaleString()}</span>
                       </div>
                     ))}
                     <div className="total-row">

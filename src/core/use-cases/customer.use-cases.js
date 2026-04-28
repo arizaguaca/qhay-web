@@ -3,11 +3,11 @@
  * using the chosen channel (e.g. WhatsApp).
  *
  * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
- * @param {{name: string, phone: string, channel: 'whatsapp' | 'sms'}} data
+ * @param {{fullName: string, phone: string, channel: 'whatsapp' | 'sms'}} data
  * @returns {Promise<import('../entities/Customer').Customer>}
  */
 export const createCustomerVerification = async (authRepository, data) => {
-  const name = (data?.name ?? '').trim();
+  const name = (data?.fullName ?? '').trim();
   const phone = (data?.phone ?? '').trim();
   const channel = data?.channel ?? 'whatsapp';
 

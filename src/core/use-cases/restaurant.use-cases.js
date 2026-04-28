@@ -2,12 +2,12 @@
  * getRestaurantsByOwner — Use case: loads all restaurants for a given owner.
  *
  * @param {import('../repositories/IRestaurantRepository').IRestaurantRepository} restaurantRepository
- * @param {string} ownerId
+ * @param {string} userId
  * @returns {Promise<import('../entities/Restaurant').Restaurant[]>}
  */
-export const getRestaurantsByOwner = (restaurantRepository, ownerId) => {
-  if (!ownerId) throw new Error('Se requiere el ID del propietario.');
-  return restaurantRepository.getByOwner(ownerId);
+export const getRestaurantsByOwner = (restaurantRepository, userId) => {
+  if (!userId) throw new Error('Se requiere el ID del propietario.');
+  return restaurantRepository.getByOwner(userId);
 };
 
 /**
@@ -31,13 +31,13 @@ export const getRestaurantById = (restaurantRepository, restaurantId) => {
  * @returns {Promise<import('../entities/Restaurant').Restaurant>}
  */
 export const createRestaurant = async (restaurantRepository, formData, logoFile = null) => {
-  const { name, phone, description, address, locationType, cuisineType, cityId, mallId, link } = formData;
-  if (!name || !phone || !description || !address || !locationType || !cuisineType || !cityId) {
+  const { name, phone, description, address, locationType, cuisineId, cityId, mallId, link } = formData;
+  if (!name || !phone || !description || !address || !locationType || !cuisineId || !cityId) {
     throw new Error('Todos los campos del restaurante (incluyendo la ciudad) son obligatorios.');
   }
 
-  const ownerId = formData.owner_id ?? formData.ownerId;
-  if (!ownerId) {
+  const userId = formData.userId ?? formData.owner_id ?? formData.ownerId;
+  if (!userId) {
     throw new Error('Se requiere el ID del propietario.');
   }
 
@@ -54,11 +54,11 @@ export const createRestaurant = async (restaurantRepository, formData, logoFile 
     address,
     phone,
     locationType,
-    cuisineType,
+    cuisineId,
     cityId,
     mallId,
     link: linkTrimmed,
-    ownerId,
+    userId,
     logoUrl,
   }, logoMode === 'file' ? logoFile : null); // el repositorio lo incluye en el FormData
 

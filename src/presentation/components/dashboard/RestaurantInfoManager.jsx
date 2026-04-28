@@ -22,7 +22,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
     address: restaurant.address || '',
     phone: restaurant.phone || '',
     locationType: restaurant.locationType || '',
-    cuisineType: restaurant.cuisineType || '',
+    cuisineId: restaurant.cuisineId || '',
     cityId: restaurant.cityId || '',
     mallId: restaurant.mallId || '',
     link: restaurant.link || '',
@@ -40,7 +40,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
       try {
         const [citiesData, cuisineData] = await Promise.all([
           catalogRepository.getCities(),
-          catalogRepository.getCuisineTypes(restaurant.ownerId)
+          catalogRepository.getCuisineTypes(restaurant.userId)
         ]);
         setCities(citiesData);
         setCuisineTypes(cuisineData);
@@ -55,7 +55,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
       }
     };
     loadInitialCatalogs();
-  }, [restaurant.ownerId, restaurant.cityId]);
+  }, [restaurant.userId, restaurant.cityId]);
 
   // Load malls when cityId changes in the form
   React.useEffect(() => {
@@ -76,7 +76,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'cuisineType' && value === 'CUSTOM') {
+    if (name === 'cuisineId' && value === 'CUSTOM') {
       setShowCustomCuisine(true);
       return;
     }
@@ -115,12 +115,11 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
       const file = logoMode === 'file' ? logoFile : null;
       const linkTrimmed = (formData.link || '').trim();
       
-      let finalCuisineType = formData.cuisineType;
+      let finalCuisineId = formData.cuisineId;
       if (showCustomCuisine && customCuisine) {
-        // Create custom cuisine type and get its ID using ownerId
         try {
-          const newCuisine = await catalogRepository.createCuisineType(customCuisine, restaurant.ownerId);
-          finalCuisineType = newCuisine.id;
+          const newCuisine = await catalogRepository.createCuisineType(customCuisine, restaurant.userId);
+          finalCuisineId = newCuisine.id;
         } catch (cErr) {
           console.error('Failed to create custom cuisine type:', cErr);
           throw new Error('No se pudo crear el nuevo tipo de cocina.');
@@ -133,7 +132,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
         address: formData.address,
         phone: formData.phone,
         locationType: formData.locationType,
-        cuisineType: finalCuisineType,
+        cuisineId: finalCuisineId,
         cityId: formData.cityId,
         mallId: formData.mallId,
         link: linkTrimmed,
@@ -290,8 +289,8 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
                 <div className="input-wrapper">
                   <Utensils className="input-icon" size={18} />
                   <select
-                    name="cuisineType"
-                    value={formData.cuisineType}
+                    name="cuisineId"
+                    value={formData.cuisineId}
                     onChange={handleChange}
                     required={!showCustomCuisine}
                   >
@@ -325,7 +324,7 @@ const RestaurantInfoManager = ({ restaurant, onUpdate }) => {
                         />
                         <button 
                           type="button" 
-                          onClick={() => { setShowCustomCuisine(false); setCustomCuisine(''); setFormData(p => ({...p, cuisineType: ''})); }}
+                          onClick={() => { setShowCustomCuisine(false); setCustomCuisine(''); setFormData(p => ({...p, cuisineId: ''})); }}
                           style={{ position: 'absolute', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                         >
                           <X size={16} />

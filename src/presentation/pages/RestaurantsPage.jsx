@@ -15,13 +15,13 @@ import './RestaurantsPage.css';
  * @param {{ restaurantRepository: Object, currentUser: import('../../core/entities/User').User }} props
  */
 const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
-  const ownerId = currentUser?.id;
+  const userId = currentUser?.id;
   const userIsStaff = isStaff(currentUser);
   const staffRestaurantId = currentUser?.restaurantId;
 
   const { restaurants, loading, create } = useRestaurants(
     restaurantRepository,
-    userIsStaff ? null : ownerId
+    userIsStaff ? null : userId
   );
 
   // Staff users load their specific restaurant via useRestaurant
@@ -41,8 +41,8 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
 
   const [formData, setFormData] = useState({
     name: '', description: '', address: '', phone: '',
-    locationType: '', cuisineType: '', cityId: '', mallId: '', link: '',
-    owner_id: ownerId, logo_url: '',
+    locationType: '', cuisineId: '', cityId: '', mallId: '', link: '',
+    userId, logo_url: '',
   });
 
   const [malls, setMalls] = useState([]);
@@ -56,7 +56,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
       try {
         const [citiesData, cuisineData] = await Promise.all([
           catalogRepository.getCities(),
-          catalogRepository.getCuisineTypes(ownerId)
+          catalogRepository.getCuisineTypes(userId)
         ]);
         setCities(citiesData);
         setCuisineTypes(cuisineData);
@@ -65,7 +65,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
       }
     };
     loadInitialCatalogs();
-  }, [ownerId]);
+  }, [userId]);
 
   // Fetch malls when cityId changes
   React.useEffect(() => {
@@ -80,7 +80,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'cuisineType' && value === 'CUSTOM') {
+    if (name === 'cuisineId' && value === 'CUSTOM') {
       setShowCustomCuisine(true);
       return;
     }
@@ -129,15 +129,14 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
       if (formData.locationType === 'Food Court' && !formData.mallId) {
         throw new Error('Debe seleccionar un centro comercial para locales en Plazoleta de Comidas.');
       }
-      let finalCuisineType = formData.cuisineType;
+      let finalCuisineId = formData.cuisineId;
       
       // If a custom cuisine was entered, we create the cuisine type record first
       // to get the ID, and then send that ID to the restaurant creation.
       if (showCustomCuisine && customCuisine) {
         try {
-          // Creating custom cuisine type with ownerId
-          const newCuisine = await catalogRepository.createCuisineType(customCuisine, ownerId);
-          finalCuisineType = newCuisine.id;
+          const newCuisine = await catalogRepository.createCuisineType(customCuisine, userId);
+          finalCuisineId = newCuisine.id;
         } catch (cErr) {
           console.error('Failed to create custom cuisine type:', cErr);
           throw new Error('No se pudo crear el nuevo tipo de cocina. Por favor intente de nuevo.');
@@ -147,7 +146,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
       const createdRestaurant = await create(
         {
           ...formData,
-          cuisineType: finalCuisineType,
+          cuisineId: finalCuisineId,
           cityId: formData.cityId,
           logoMode,
           logo_url: typeof formData.logo_url === 'string' ? formData.logo_url.trim() : formData.logo_url,
@@ -176,8 +175,8 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
         setSaveStatus('idle');
         setFormData({
           name: '', description: '', address: '', phone: '',
-          locationType: '', cuisineType: '', cityId: '', mallId: '', link: '',
-          owner_id: ownerId, logo_url: '',
+          locationType: '', cuisineId: '', cityId: '', mallId: '', link: '',
+          userId, logo_url: '',
         });
         setPreviewUrl('');
         setLogoFile(null);
@@ -389,13 +388,13 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
 
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="cuisineType">¿Qué tipo de comida ofrece?</label>
+                  <label htmlFor="cuisineId">¿Qué tipo de comida ofrece?</label>
                   <div className="input-wrapper">
                     <Utensils className="input-icon" size={18} />
                     <select
-                      id="cuisineType"
-                      name="cuisineType"
-                      value={formData.cuisineType}
+                      id="cuisineId"
+                      name="cuisineId"
+                      value={formData.cuisineId}
                       onChange={handleChange}
                       required={!showCustomCuisine}
                     >
@@ -429,7 +428,7 @@ const RestaurantsPage = ({ restaurantRepository, currentUser }) => {
                           />
                           <button 
                             type="button" 
-                            onClick={() => { setShowCustomCuisine(false); setCustomCuisine(''); setFormData(p => ({...p, cuisineType: ''})); }}
+                            onClick={() => { setShowCustomCuisine(false); setCustomCuisine(''); setFormData(p => ({...p, cuisineId: ''})); }}
                             style={{ position: 'absolute', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                           >
                             <X size={16} />

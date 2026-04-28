@@ -7,7 +7,7 @@
  * @property {string} menuItemId
  * @property {string} menuItemName
  * @property {number} quantity
- * @property {number} price
+ * @property {number} unitPrice
  */
 
 /**
@@ -47,7 +47,7 @@ export const createOrder = (raw) => ({
     menuItemId: item.menu_item_id ?? item.menuItemId ?? item.MenuItemID ?? '',
     menuItemName: item.menu_item_name ?? item.menuItemName ?? item.name ?? item.MenuItemName ?? '',
     quantity: item.quantity ?? 1,
-    price: item.price ?? 0,
+    unitPrice: item.unit_price ?? item.unitPrice ?? item.price ?? 0,
     notes: item.notes ?? '',
   })),
 });

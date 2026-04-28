@@ -5,10 +5,10 @@
  * @property {string} description
  * @property {string} address
  * @property {string} phone
- * @property {string} ownerId
+ * @property {string} userId
  * @property {string | null} logoUrl
  * @property {string} locationType
- * @property {string} cuisineType
+ * @property {string} cuisineId
  * @property {string} [mallId]
  * @property {string} [mallName]
  * @property {string} [link]
@@ -25,10 +25,10 @@ export const createRestaurant = (raw) => ({
   description: raw.description ?? '',
   address: raw.address ?? '',
   phone: raw.phone ?? '',
-  ownerId: raw.owner_id ?? raw.OwnerID ?? raw.ownerId ?? '',
+  userId: raw.user_id ?? raw.userId ?? raw.owner_id ?? raw.OwnerID ?? raw.ownerId ?? '',
   logoUrl: raw.logo_url ?? raw.LogoURL ?? raw.logoUrl ?? null,
   locationType: raw.location_type ?? raw.locationType ?? raw.restaurant_type ?? raw.restaurantType ?? '',
-  cuisineType: raw.cuisine_type ?? raw.cuisineType ?? '',
+  cuisineId: raw.cuisine_id ?? raw.cuisineId ?? raw.cuisine_type ?? raw.cuisineType ?? '',
   cityId: raw.city_id ?? raw.cityId ?? '',
   mallId: raw.mall_id ?? raw.mallId ?? '',
   mallName: raw.mall_name ?? raw.mallName ?? raw.shopping_mall ?? raw.shoppingMall ?? '',

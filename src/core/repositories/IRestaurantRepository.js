@@ -6,10 +6,10 @@
 export const IRestaurantRepository = {
   /**
    * Fetches all restaurants belonging to an owner.
-   * @param {string} ownerId
+   * @param {string} userId
    * @returns {Promise<import('../entities/Restaurant').Restaurant[]>}
    */
-  getByOwner: async (_ownerId) => { throw new Error('Not implemented'); },
+  getByOwner: async (_userId) => { throw new Error('Not implemented'); },
 
   /**
    * Fetches a single restaurant by its ID.
