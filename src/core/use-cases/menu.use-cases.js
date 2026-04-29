@@ -30,6 +30,7 @@ export const saveMenuItem = async (menuRepository, formData, imageFile = null) =
     prepTime: formData.prep_time === '' ? 0 : parseInt(formData.prep_time ?? formData.prepTime ?? 0),
     isAvailable: formData.is_available ?? formData.isAvailable ?? true,
     groups: formData.groups ?? [],
+    imageUrl: formData.imageUrl ?? formData.image_url ?? undefined,
   };
 
   const item = isEditing

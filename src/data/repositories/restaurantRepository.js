@@ -130,15 +130,23 @@ export const restaurantRepository = {
   },
 
   async getStaff(restaurantId) {
-    const res = await apiFetch(`/users?restaurant_id=${restaurantId}`);
+    const res = await apiFetch(`/users/staff/${restaurantId}`);
     if (!res.ok) throw new Error('Error al cargar el staff.');
     return ((await res.json()) || []).map(mapUser);
   },
 
   async createStaff(data) {
-    const res = await apiFetch('/users', {
+    const payload = {
+      fullName: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      role: data.role,
+      restaurantId: data.restaurantId ?? data.restaurant_id
+    };
+    const res = await apiFetch('/users/staff', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -148,9 +156,18 @@ export const restaurantRepository = {
   },
 
   async updateStaff(staffId, data) {
-    const res = await apiFetch(`/users?id=${staffId}`, {
+    const payload = {
+      fullName: data.name,
+      email: data.email,
+      phone: data.phone,
+      role: data.role,
+      restaurantId: data.restaurantId ?? data.restaurant_id
+    };
+    if (data.password) payload.password = data.password;
+    
+    const res = await apiFetch(`/users/staff/${staffId}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -160,18 +177,18 @@ export const restaurantRepository = {
   },
 
   async deleteStaff(staffId) {
-    const res = await apiFetch(`/users?id=${staffId}`, { method: 'DELETE' });
+    const res = await apiFetch(`/users/staff/${staffId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Error al eliminar el miembro del staff.');
   },
 
   async getOperatingHours(restaurantId) {
-    const res = await apiFetch(`/restaurants/${restaurantId}/hours`);
+    const res = await apiFetch(`/operating-hours/${restaurantId}/hours`);
     if (!res.ok) return [];
     return (await res.json()) || [];
   },
 
   async saveOperatingHours(restaurantId, hours) {
-    const res = await apiFetch(`/restaurants/${restaurantId}/hours`, {
+    const res = await apiFetch(`/operating-hours/${restaurantId}/hours`, {
       method: 'PUT',
       body: JSON.stringify(hours),
     });

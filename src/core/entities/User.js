@@ -17,12 +17,12 @@
  */
 export const createUser = (raw) => ({
   id: raw.id ?? raw.ID ?? '',
-  name: raw.name ?? '',
+  name: raw.fullName ?? raw.full_name ?? raw.name ?? '',
   email: raw.email ?? '',
   phone: raw.phone ?? '',
   role: raw.role ?? 'owner',
   isVerified: raw.isVerified ?? raw.is_verified ?? false,
-  restaurantId: raw.restaurant_id ?? raw.RestaurantID ?? null,
+  restaurantId: raw.restaurantId ?? raw.restaurant_id ?? raw.RestaurantID ?? null,
 });
 
 /**

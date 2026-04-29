@@ -9,7 +9,9 @@ export const orderRepository = {
   async getByRestaurant(restaurantId) {
     const res = await apiFetch(`/orders?restaurant_id=${restaurantId}`);
     if (!res.ok) throw new Error('Error al cargar los pedidos.');
-    return ((await res.json()) || []).map(mapOrder);
+    const data = await res.json();
+    const ordersArray = Array.isArray(data) ? data : (data ? [data] : []);
+    return ordersArray.map(mapOrder);
   },
 
   async getByCustomer(customerId) {

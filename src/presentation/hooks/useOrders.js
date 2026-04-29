@@ -93,10 +93,14 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, pol
     }
   }, [orderRepository, restaurantId, customerId]);
 
-  const confirmPayment = useCallback(async (orderId) => {
-    await updateOrderStatus(orderRepository, orderId, 'paid');
+  const updateStatus = useCallback(async (orderId, status) => {
+    await updateOrderStatus(orderRepository, orderId, status);
     await fetchOrders();
   }, [orderRepository, fetchOrders]);
 
-  return { orders, submitting, submitOrder, confirmPayment, refetch: fetchOrders };
+  const confirmPayment = useCallback(async (orderId) => {
+    return updateStatus(orderId, 'paid');
+  }, [updateStatus]);
+
+  return { orders, submitting, submitOrder, confirmPayment, updateStatus, refetch: fetchOrders };
 };

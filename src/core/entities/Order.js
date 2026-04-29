@@ -25,9 +25,10 @@
 export const ORDER_STATUS_META = {
   pending:    { name: 'Pendiente',  color: '#f59e0b' },
   preparing:  { name: 'Preparando', color: '#3b82f6' },
-  ready:      { name: 'Listo',      color: '#10b981' },
-  delivered:  { name: 'Entregado',  color: '#6366f1' },
-  paid:       { name: 'Pagado',     color: '#4ade80' },
+  ready:             { name: 'Listo',      color: '#3b82f6' },
+  delivered:         { name: 'Entregado',  color: '#8b5cf6' },
+  payment_requested: { name: 'Cobro Solicitado', color: '#ec4899' },
+  paid:              { name: 'Pagado',     color: '#22c55e' },
   cancelled:  { name: 'Cancelado',  color: '#f87171' },
 };
 
@@ -41,14 +42,18 @@ export const createOrder = (raw) => ({
   restaurantId: String(raw.restaurant_id ?? raw.restaurantId ?? raw.RestaurantID ?? ''),
   customerId: raw.customer_id ?? raw.customerId ?? raw.CustomerID ?? '',
   tableNumber: raw.table_number ?? raw.tableNumber ?? raw.TableNumber ?? 1,
-  totalPrice: raw.total_price ?? raw.totalPrice ?? raw.TotalPrice ?? 0,
+  totalPrice: parseFloat(raw.totalAmount ?? raw.total_amount ?? raw.total_price ?? raw.totalPrice ?? raw.TotalPrice ?? 0),
   status: (raw.status ?? raw.Status ?? 'pending').toLowerCase(),
   items: (raw.items ?? []).map((item) => ({
     menuItemId: item.menu_item_id ?? item.menuItemId ?? item.MenuItemID ?? '',
     menuItemName: item.menu_item_name ?? item.menuItemName ?? item.name ?? item.MenuItemName ?? '',
     quantity: item.quantity ?? 1,
-    unitPrice: item.unit_price ?? item.unitPrice ?? item.price ?? 0,
+    unitPrice: parseFloat(item.unit_price ?? item.unitPrice ?? item.price ?? 0),
     notes: item.notes ?? '',
+    modifiers: (item.modifiers ?? []).map(m => ({
+      name: m.name ?? m.Name ?? '',
+      price: parseFloat(m.price ?? m.Price ?? 0)
+    }))
   })),
 });
 

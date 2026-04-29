@@ -70,6 +70,7 @@ export const menuRepository = {
     if (data.price !== undefined) fd.append('price', data.price);
     if (data.prepTime !== undefined) fd.append('prepTime', data.prepTime);
     fd.append('isAvailable', String(data.isAvailable ?? true));
+    if (data.imageUrl) fd.append('imageUrl', data.imageUrl);
     
     if (data.groups) {
       fd.append('groups', JSON.stringify(data.groups));

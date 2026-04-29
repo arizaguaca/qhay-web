@@ -17,7 +17,7 @@ export const createCustomerVerification = async (authRepository, data) => {
   if (!phone || phone.length < 7) {
     throw new Error('Por favor ingresa un número de teléfono válido.');
   }
-  return authRepository.createCustomer({ name, phone, channel });
+  return authRepository.createCustomer({ fullName: name, phone, channel });
 };
 
 /**

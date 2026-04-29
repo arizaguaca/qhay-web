@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2, ArrowLeft, Plus, Minus, User, Bell, ChevronDown, Settings } from 'lucide-react';
 import CustomerVerification from '../components/CustomerVerification';
 import { useCustomerVerification } from '../hooks/useCustomerVerification';
 import { useCustomerOrders } from '../hooks/useOrders';
@@ -9,6 +9,8 @@ import { menuRepository } from '../../data/repositories/menuRepository';
 import { orderRepository } from '../../data/repositories/orderRepository';
 import { resolveImageUrl } from '../../data/api/httpClient';
 import { ORDER_STATUS_META, isActiveOrder } from '../../core/entities/Order';
+import { formatCurrency } from '../utils/formatter';
+import ItemDetailModal from '../components/PublicMenu/ItemDetailModal';
 import './PublicMenuPage.css';
 
 /**
@@ -24,7 +26,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const customerId = session.customer_id || session.customer?.CustomerID || session.customer?.id || session.phone || null;
 
   const { items: menu, categories, loading: menuLoading, error: menuError } = useMenu(menuRepository, restaurantId);
-  const { orders, submitting, submitOrder, confirmPayment } = useCustomerOrders(
+  const { orders, submitting, submitOrder, confirmPayment, updateStatus } = useCustomerOrders(
     orderRepository, customerId, restaurantId
   );
 
@@ -33,6 +35,10 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const [cart, setCart] = useState([]);
   const [itemNotes, setItemNotes] = useState({});
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [activeCategoryId, setActiveCategoryId] = useState('all');
 
   // Load restaurant info on mount
   React.useEffect(() => {
@@ -44,24 +50,46 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
     });
   }, [restaurantId]);
 
-  const addToCart = (item) => {
+  const addToCart = (itemWithSelections) => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { ...item, quantity: 1 }];
+      const optionsKey = (itemWithSelections.selectedOptions || [])
+        .map(o => o.optionId)
+        .sort()
+        .join(',');
+      
+      const existingIndex = prev.findIndex((i) => 
+        i.id === itemWithSelections.id && i.optionsKey === optionsKey
+      );
+
+      if (existingIndex > -1) {
+        const next = [...prev];
+        next[existingIndex] = { 
+          ...next[existingIndex], 
+          quantity: next[existingIndex].quantity + (itemWithSelections.quantity || 1)
+        };
+        return next;
+      }
+      
+      return [...prev, { ...itemWithSelections, optionsKey, quantity: itemWithSelections.quantity || 1 }];
     });
   };
 
-  const removeFromCart = (item) => {
+  const removeFromCart = (cartItemKey) => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing && existing.quantity > 1) return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i);
-      return prev.filter((i) => i.id !== item.id);
+      const existing = prev.find((i) => (i.optionsKey ? `${i.id}-${i.optionsKey}` : i.id) === cartItemKey);
+      if (existing && existing.quantity > 1) {
+        return prev.map((i) => (i.optionsKey ? `${i.id}-${i.optionsKey}` : i.id) === cartItemKey ? { ...i, quantity: i.quantity - 1 } : i);
+      }
+      return prev.filter((i) => (i.optionsKey ? `${i.id}-${i.optionsKey}` : i.id) !== cartItemKey);
     });
   };
 
-  const getQuantity = (id) => cart.find((i) => i.id === id)?.quantity ?? 0;
-  const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const getQuantity = (id) => cart.filter((i) => i.id === id).reduce((sum, i) => sum + i.quantity, 0);
+  const cartTotal = cart.reduce((sum, i) => {
+    const itemBase = i.price * i.quantity;
+    const mods = (i.selectedOptions || []).reduce((mSum, opt) => mSum + (opt.extraPrice || 0), 0) * i.quantity;
+    return sum + itemBase + mods;
+  }, 0);
   const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
 
   const handlePlaceOrder = async () => {
@@ -78,6 +106,14 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
       alert(err.message);
     }
   };
+
+  const activeOrders = orders.filter(isActiveOrder);
+  const historyOrders = orders.filter((o) => !isActiveOrder(o));
+  
+  const activeCategories = React.useMemo(() => {
+    const usedIds = new Set(menu.map(item => item.categoryId));
+    return categories.filter(c => usedIds.has(c.id));
+  }, [menu, categories]);
 
   const handleLogout = () => {
     logout();
@@ -109,10 +145,9 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
     );
   }
 
-  const activeOrders = orders.filter(isActiveOrder);
-  const historyOrders = orders.filter((o) => !isActiveOrder(o));
-
   const groupedMenu = menu.reduce((acc, item) => {
+    if (activeCategoryId !== 'all' && item.categoryId !== activeCategoryId) return acc;
+    
     const cat = categories.find(c => c.id === item.categoryId) || { name: 'Otros', id: item.categoryId };
     if (!acc[cat.name]) acc[cat.name] = [];
     acc[cat.name].push(item);
@@ -121,15 +156,134 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
   return (
     <div className="public-menu-container">
-      <div className="menu-top-nav">
-        {onBack && (
-          <button onClick={onBack} className="back-btn" title="Volver">
-            <ArrowLeft size={20} />
+      <div className="menu-top-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.8rem', 
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              padding: '0.4rem 0.8rem', borderRadius: '30px', color: 'white', cursor: 'pointer'
+            }}
+          >
+            <div style={{ 
+              width: '32px', height: '32px', borderRadius: '50%', 
+              background: 'var(--primary)', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem' 
+            }}>
+              {(session.fullName || 'C').charAt(0).toUpperCase()}
+            </div>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{session.fullName || 'Cliente'}</span>
+            <ChevronDown size={16} style={{ opacity: 0.5, transform: showUserMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </button>
-        )}
-        <button onClick={handleLogout} className="logout-btn" title="Cerrar sesión">
-          <LogOut size={20} />
-        </button>
+
+          <AnimatePresence>
+            {showUserMenu && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="glass-card"
+                style={{ 
+                  position: 'absolute', top: '120%', right: 0, width: '250px', 
+                  zIndex: 1000, padding: '1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
+                <div style={{ padding: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.5rem' }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Identificado como</p>
+                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem' }}>{session.fullName || 'Cliente'}</p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>{session.phone}</p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <div style={{ 
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                    padding: '0.8rem 0.5rem', borderRadius: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.9rem' }}>
+                      <Bell size={18} color={notificationsEnabled ? 'var(--primary)' : 'var(--text-muted)'} />
+                      Notificaciones
+                    </div>
+                    <button 
+                      onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+                      style={{ 
+                        width: '40px', height: '22px', borderRadius: '20px', 
+                        background: notificationsEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                        border: 'none', position: 'relative', cursor: 'pointer', transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ 
+                        width: '16px', height: '16px', borderRadius: '50%', background: 'white',
+                        position: 'absolute', top: '3px', left: notificationsEnabled ? '21px' : '3px',
+                        transition: 'all 0.2s'
+                      }} />
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setShowHistory(!showHistory);
+                      setShowUserMenu(false);
+                    }}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: '0.8rem', 
+                      padding: '0.8rem 0.5rem', borderRadius: '10px', background: 'transparent',
+                      border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left',
+                      fontSize: '0.9rem', width: '100%', transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Clock size={18} color="var(--text-muted)" />
+                    {showHistory ? 'Ocultar Historial' : 'Ver Historial de pedidos'}
+                  </button>
+
+                  <button 
+                    onClick={handleLogout}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: '0.8rem', 
+                      padding: '0.8rem 0.5rem', borderRadius: '10px', background: 'transparent',
+                      border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left',
+                      fontSize: '0.9rem', fontWeight: '800', width: '100%', transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <LogOut size={18} />
+                    Cerrar sesión
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Restaurant Hero */}
+      <div className="menu-hero">
+        <div className="hero-bg-wrapper">
+          <img src={resolveImageUrl(restaurant.bannerUrl) || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000'} className="hero-bg-image" alt="banner" />
+        </div>
+        <div className="hero-content">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div className="restaurant-logo-container">
+              <img src={resolveImageUrl(restaurant.logoUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=200'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="logo" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h1 className="restaurant-title" style={{ fontSize: '2.5rem', margin: 0, WebkitTextFillColor: 'white', background: 'none' }}>{restaurant.name}</h1>
+              {tableNumber && (
+                <div className="table-badge" style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Utensils size={14} />
+                  <span>Mesa {tableNumber}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Active orders and history */}
@@ -164,23 +318,41 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
                   <div className="order-details-box">
                     {order.items?.map((it, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>{it.quantity}x {it.menuItemName || 'Plato'}</span>
-                        <span>${(it.unitPrice * it.quantity).toLocaleString()}</span>
-                      </div>
+                      <React.Fragment key={i}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>{it.quantity}x {it.menuItemName || 'Plato'}</span>
+                          <span>${formatCurrency((Number(it.unitPrice || 0) + (it.modifiers || []).reduce((s, m) => s + Number(m.price || 0), 0)) * it.quantity)}</span>
+                        </div>
+                        {it.modifiers?.length > 0 && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '-0.2rem', marginBottom: '0.3rem', paddingLeft: '1.2rem' }}>
+                            {it.modifiers.map(m => `+ ${m.name}`).join(', ')}
+                          </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <div className="total-row">
                       <span>Total:</span>
-                      <span style={{ color: 'white' }}>${(order.totalPrice || 0).toLocaleString()}</span>
+                      <span style={{ color: 'white' }}>${formatCurrency(order.totalPrice || 0)}</span>
                     </div>
 
                     {order.status === 'delivered' && (
                       <button
-                        onClick={() => { if (confirm(`¿Confirmas el pago de $${(order.totalPrice || 0).toLocaleString()}?`)) confirmPayment(order.id); }}
+                        onClick={() => { if (confirm(`¿Solicitar la cuenta por $${formatCurrency(order.totalPrice || 0)}?`)) updateStatus(order.id, 'payment_requested'); }}
                         className="pay-btn"
+                        style={{ background: '#ec4899', color: 'white' }}
                       >
-                        PAGAR
+                        Solicitar Pago
                       </button>
+                    )}
+
+                    {order.status === 'payment_requested' && (
+                      <div style={{ 
+                        marginTop: '1.2rem', padding: '0.8rem', borderRadius: '12px', 
+                        background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', 
+                        textAlign: 'center', fontWeight: '900', border: '1px dashed #ec4899'
+                      }}>
+                        Esperando Cobro...
+                      </div>
                     )}
                   </div>
                 </motion.div>
@@ -208,7 +380,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                       </span>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Ticket: {String(order.id).slice(-4)}</div>
                     </div>
-                    <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>${(order.totalPrice || 0).toLocaleString()}</div>
+                    <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>${formatCurrency(order.totalPrice || 0)}</div>
                   </div>
                 </motion.div>
               ))}
@@ -221,12 +393,38 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
       {/* Menu items */}
       <div style={{ padding: '1.5rem' }}>
-        <h2 className="menu-section-title">Nuestra Carta</h2>
-        <div style={{ marginLeft: '1.2rem', marginBottom: '2rem', marginTop: '-1rem' }}>
-          <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'white', opacity: 0.9 }}>{restaurant.name}</span>
-          {tableNumber && (
-            <span style={{ marginLeft: '0.8rem', color: 'var(--primary)', fontWeight: '800' }}>• Mesa {tableNumber}</span>
-          )}
+        {/* Category Scroller */}
+        <div style={{ 
+          display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '1rem', 
+          marginBottom: '2rem', scrollbarWidth: 'none', msOverflowStyle: 'none'
+        }} className="no-scrollbar">
+          <button
+            onClick={() => setActiveCategoryId('all')}
+            style={{
+              padding: '0.6rem 1.2rem', borderRadius: '12px', whiteSpace: 'nowrap',
+              background: activeCategoryId === 'all' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+              color: activeCategoryId === 'all' ? 'white' : 'var(--text-muted)',
+              border: '1px solid', borderColor: activeCategoryId === 'all' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+              cursor: 'pointer', transition: 'all 0.3s', fontWeight: '700', fontSize: '0.9rem'
+            }}
+          >
+            Todos
+          </button>
+          {activeCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategoryId(cat.id)}
+              style={{
+                padding: '0.6rem 1.2rem', borderRadius: '12px', whiteSpace: 'nowrap',
+                background: activeCategoryId === cat.id ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                color: activeCategoryId === cat.id ? 'white' : 'var(--text-muted)',
+                border: '1px solid', borderColor: activeCategoryId === cat.id ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                cursor: 'pointer', transition: 'all 0.3s', fontWeight: '700', fontSize: '0.9rem'
+              }}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
 
         {Object.keys(groupedMenu).map((catName) => (
@@ -252,33 +450,36 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="glass-card item-card"
+                  className={`glass-card menu-item-card ${!item.isAvailable ? 'out-of-stock' : ''}`}
+                  onClick={() => item.isAvailable && setSelectedItem(item)}
                 >
-                  <div className="item-img-box">
+                  <div className="menu-item-image-container">
                     <img
-                      src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=200'}
+                      src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=500'}
                       alt={item.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      className="menu-item-img"
                     />
+                    <span className="price-tag">${formatCurrency(item.price)}</span>
+                    {!item.isAvailable && (
+                      <div className="stock-overlay">
+                        <EyeOff size={24} />
+                        <span>AGOTADO</span>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <h3 className="item-name-h3">{item.name}</h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{item.description}</p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span className="item-price-span">${item.price}</span>
-                        {item.isAvailable !== false ? (
-                          <div className="qty-control">
-                            <button onClick={() => removeFromCart(item)} className="qty-btn" style={{ background: 'rgba(255,255,255,0.1)' }}>-</button>
-                            <span style={{ fontWeight: 'bold', minWidth: '15px', textAlign: 'center' }}>{getQuantity(item.id)}</span>
-                            <button onClick={() => addToCart(item)} className="qty-btn" style={{ background: 'var(--primary)' }}>+</button>
-                          </div>
-                        ) : (
-                          <span style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: '700' }}>AGOTADO</span>
-                        )}
-                      </div>
+                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: '800' }}>{item.name}</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem', flex: 1, lineHeight: '1.4' }}>{item.description}</p>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 'auto' }}>
+                      <button 
+                        className="btn-primary" 
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', borderRadius: '10px' }}
+                        disabled={!item.isAvailable}
+                      >
+                        <Plus size={16} />
+                        Añadir
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -295,23 +496,38 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
             <div className="glass-card floating-cart-panel">
               {/* Cart item list */}
               <div className="cart-items-list">
-                {cart.map((cartItem) => (
-                  <div key={cartItem.id} className="cart-item-row">
-                    <div className="cart-item-info">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="cart-item-name">{cartItem.quantity}x {cartItem.name}</span>
-                        <span className="cart-item-price">${(cartItem.price * cartItem.quantity).toLocaleString()}</span>
+                {cart.map((cartItem, idx) => {
+                  const itemKey = cartItem.optionsKey ? `${cartItem.id}-${cartItem.optionsKey}` : cartItem.id;
+                  const itemTotal = (cartItem.price + (cartItem.selectedOptions || []).reduce((s, o) => s + o.extraPrice, 0)) * cartItem.quantity;
+                  return (
+                    <div key={`${itemKey}-${idx}`} className="cart-item-row" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                      <div className="cart-item-info">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span className="cart-item-name" style={{ fontWeight: '800' }}>{cartItem.quantity}x {cartItem.name}</span>
+                              <button onClick={() => removeFromCart(itemKey)} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', padding: '0 0.5rem', cursor: 'pointer' }}><Minus size={14} /></button>
+                              <button onClick={() => addToCart({ ...cartItem, quantity: 1 })} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', padding: '0 0.5rem', cursor: 'pointer' }}><Plus size={14} /></button>
+                            </div>
+                            {cartItem.selectedOptions?.length > 0 && (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem', paddingLeft: '1.5rem' }}>
+                                {cartItem.selectedOptions.map(o => o.name).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                          <span className="cart-item-price" style={{ fontWeight: '800' }}>${formatCurrency(itemTotal)}</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Nota: ej. sin cebolla..."
+                          value={itemNotes[`${itemKey}-${idx}`] || ''}
+                          onChange={(e) => setItemNotes(prev => ({ ...prev, [`${itemKey}-${idx}`]: e.target.value }))}
+                          className="cart-note-input"
+                        />
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Nota: ej. sin cebolla, extra salsa..."
-                        value={itemNotes[cartItem.id] || ''}
-                        onChange={(e) => setItemNotes(prev => ({ ...prev, [cartItem.id]: e.target.value }))}
-                        className="cart-note-input"
-                      />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Cart footer */}
@@ -321,7 +537,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                     <ShoppingBag size={20} color="white" />
                     <span className="cart-qty-badge">{totalItems}</span>
                   </div>
-                  <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>${cartTotal.toLocaleString()}</p>
+                  <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>${formatCurrency(cartTotal)}</p>
                 </div>
                 <button onClick={handlePlaceOrder} disabled={submitting} className="btn-primary" style={{ padding: '0.7rem 1.8rem', borderRadius: '20px' }}>
                   {submitting ? <Loader2 className="spin" size={18} /> : 'Pedir Ahora'}
@@ -331,6 +547,13 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ItemDetailModal 
+        item={selectedItem} 
+        isOpen={!!selectedItem} 
+        onClose={() => setSelectedItem(null)}
+        onConfirm={addToCart}
+      />
     </div>
   );
 };

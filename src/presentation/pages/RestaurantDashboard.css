@@ -428,3 +428,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Animations for Notifications */
+@keyframes pulse-pink {
+  0% { transform: scale(1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }
+  50% { transform: scale(1.015); box-shadow: 0 0 20px rgba(236, 72, 153, 0.3); }
+  100% { transform: scale(1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(10deg); }
+  75% { transform: rotate(-10deg); }
+}
+
+.payment-alert {
+  animation: pulse-pink 2s infinite ease-in-out;
+  border-color: rgba(236, 72, 153, 0.4) !important;
+}
+
+.shake {
+  animation: shake 0.6s infinite ease-in-out;
+}

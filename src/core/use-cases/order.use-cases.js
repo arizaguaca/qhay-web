@@ -39,13 +39,17 @@ export const placeOrder = (orderRepository, { restaurantId, customerId, tableNum
   if (!cart || cart.length === 0) throw new Error('El carrito está vacío.');
   if (!customerId) throw new Error('Se requiere identificación del cliente.');
 
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalPrice = cart.reduce((sum, item) => {
+    const itemBase = item.price * item.quantity;
+    const mods = (item.selectedOptions || []).reduce((mSum, opt) => mSum + (opt.extraPrice || 0), 0) * item.quantity;
+    return sum + itemBase + mods;
+  }, 0);
 
   const orderPayload = {
     restaurantId: restaurantId,
     customerId: customerId,
     tableNumber: parseInt(tableNumber ?? 1),
-    totalPrice: totalPrice,
+    totalAmount: totalPrice, // Changed from totalPrice to totalAmount to match backend Order entity
     status: 'pending',
     items: cart.map((item) => ({
       menuItemId: item.id ?? item.ID,
@@ -53,6 +57,11 @@ export const placeOrder = (orderRepository, { restaurantId, customerId, tableNum
       quantity: item.quantity,
       unitPrice: item.price,
       notes: item.notes || '',
+      modifiers: (item.selectedOptions || []).map(opt => ({
+        productOptionId: opt.optionId,
+        name: opt.name,
+        price: opt.extraPrice || 0
+      }))
     })),
   };
 

@@ -16,12 +16,14 @@ const StaffManager = ({ restaurantId }) => {
     { id: 'cook',    name: 'Cocinero', icon: '🍳' },
     { id: 'waiter',  name: 'Mesero',   icon: '🏃' },
     { id: 'cashier', name: 'Cajero',   icon: '💰' },
+    { id: 'manager', name: 'Gerente',  icon: '👔' },
   ];
 
-  const initialForm = { name: '', email: '', password: '', role: 'waiter' };
+  const initialForm = { name: '', email: '', phone: '', password: '', role: 'waiter' };
   const [formData, setFormData] = useState(initialForm);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // stores memberId to delete
 
   const resetForm = () => { setIsAdding(false); setEditingId(null); setFormData(initialForm); };
 
@@ -37,15 +39,17 @@ const StaffManager = ({ restaurantId }) => {
     resetForm();
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Seguro que deseas eliminar a este miembro del equipo?')) return;
-    await remove(id);
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    await remove(deleteConfirm);
+    setDeleteConfirm(null);
   };
 
   const getRoleColor = (role) => ({
     cook:    { bg: 'rgba(245, 158, 11, 0.1)',  color: '#f59e0b', border: 'rgba(245,158,11,0.2)' },
     waiter:  { bg: 'rgba(59, 130, 246, 0.1)',  color: '#3b82f6', border: 'rgba(59,130,246,0.2)' },
     cashier: { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: 'rgba(16,185,129,0.2)' },
+    manager: { bg: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: 'rgba(139,92,246,0.2)' },
   }[role] || { bg: 'transparent', color: 'var(--text-muted)', border: 'var(--border)' });
 
   return (
@@ -100,6 +104,15 @@ const StaffManager = ({ restaurantId }) => {
                     <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required placeholder="staff@qhay.com" />
                   </div>
                 </div>
+              </div>
+              <div className="form-grid" style={{ marginTop: '1rem' }}>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <div className="input-wrapper">
+                    <Check className="input-icon" size={18} />
+                    <input type="tel" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="Ej: 3001234567" />
+                  </div>
+                </div>
                 <div className="form-group">
                   <label>{editingId ? 'Nueva Contraseña (opcional)' : 'Contraseña Provisional'}</label>
                   <div className="input-wrapper">
@@ -128,7 +141,7 @@ const StaffManager = ({ restaurantId }) => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: 'rgba(255,255,255,0.03)' }}>
                 <tr>
-                  {['Miembro', 'Rol', 'Email', 'Acciones'].map((h) => (
+                  {['Miembro', 'Rol', 'Email / Tel', 'Acciones'].map((h) => (
                     <th key={h} style={{ padding: '1rem', textAlign: h === 'Acciones' ? 'right' : 'left', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{h}</th>
                   ))}
                 </tr>
@@ -151,11 +164,14 @@ const StaffManager = ({ restaurantId }) => {
                           {member.role?.toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{member.email}</td>
+                      <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        <div>{member.email}</div>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{member.phone}</div>
+                      </td>
                       <td style={{ padding: '1rem', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                           <button onClick={() => handleEdit(member)} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px' }}><Edit2 size={16} /></button>
-                          <button onClick={() => handleDelete(member.id)} style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px' }}><Trash2 size={16} /></button>
+                          <button onClick={() => setDeleteConfirm(member.id)} style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px' }}><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -169,6 +185,25 @@ const StaffManager = ({ restaurantId }) => {
           </div>
         </div>
       )}
+      
+      {/* Modal de Confirmación de Eliminación */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="glass-card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', textAlign: 'center' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                <Trash2 size={30} />
+              </div>
+              <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>¿Eliminar miembro?</h4>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem' }}>Esta acción no se puede deshacer y el usuario perderá acceso inmediato al sistema.</p>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button onClick={() => setDeleteConfirm(null)} className="btn-primary" style={{ flex: 1, background: 'transparent', border: '1px solid var(--border)' }}>Cancelar</button>
+                <button onClick={handleDelete} className="btn-primary" style={{ flex: 1, background: '#f87171' }}>Eliminar</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

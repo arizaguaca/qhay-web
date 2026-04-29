@@ -5,6 +5,7 @@ import { useMenu } from '../../hooks/useMenu';
 import { menuRepository } from '../../../data/repositories/menuRepository';
 import { resolveImageUrl } from '../../../data/api/httpClient';
 import { processImage } from '../../utils/imageProcessor';
+import { formatCurrency } from '../../utils/formatter';
 
 /**
  * MenuItemManager — CRUD interface for restaurant menu items.
@@ -76,7 +77,21 @@ const MenuItemManager = ({ restaurantId }) => {
       price: item.price?.toString() ?? '',
       prepTime: item.prepTime?.toString() ?? '',
       isAvailable: item.isAvailable,
-      groups: item.groups ? JSON.parse(JSON.stringify(item.groups)) : [],
+      groups: (item.groups || []).map(g => ({
+        ...g,
+        id: g.id,
+        title: g.title || g.name || '',
+        isRequired: Boolean(g.isRequired),
+        minSelectable: g.minSelectable ?? 0,
+        maxSelectable: g.maxSelectable ?? 1,
+        options: (g.options || []).map(o => ({
+          ...o,
+          id: o.id,
+          name: o.name || '',
+          extraPrice: typeof o.extraPrice === 'number' ? o.extraPrice : parseFloat(o.extraPrice || 0),
+          isAvailable: o.isAvailable !== false
+        }))
+      }))
     });
     setPreviewUrl(resolveImageUrl(item.imageUrl));
     setEditingId(item.id);
@@ -449,7 +464,7 @@ const MenuItemManager = ({ restaurantId }) => {
 
                       <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.2rem' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.8rem', display: 'block' }}>Opciones del grupo</label>
-                        {group.options.map((opt, oIdx) => (
+                        {(group.options || []).map((opt, oIdx) => (
                           <div key={oIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 40px', gap: '1rem', marginBottom: '1rem' }}>
                             <div className="input-wrapper">
                               <input type="text" placeholder="Nombre de la opción" value={opt.name} onChange={(e) => handleOptionChange(gIdx, oIdx, 'name', e.target.value)} style={{ paddingLeft: '1.2rem', fontSize: '0.9rem' }} />
@@ -572,7 +587,7 @@ const MenuItemManager = ({ restaurantId }) => {
                     >
                       <div className="menu-item-image-container">
                         <img src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=500'} alt={item.name} className="menu-item-img" />
-                        <span className="price-tag">${parseFloat(item.price).toFixed(2)}</span>
+                        <span className="price-tag">${formatCurrency(item.price)}</span>
                         {!item.isAvailable && (
                           <div className="stock-overlay"><EyeOff size={24} /><span>AGOTADO</span></div>
                         )}
