@@ -1,0 +1,45 @@
+.call-waiter-container {
+  position: fixed;
+  bottom: 110px; /* Positioned above the cart drawer */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  display: flex;
+  justify-content: center;
+}
+
+.call-fab-pill {
+  height: 52px;
+  padding: 0 1.5rem;
+  border-radius: 26px; /* Pill shape */
+  background: rgba(var(--primary-rgb), 0.85); /* Translúcido naranja */
+  backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
+  box-shadow: 0 8px 30px rgba(var(--primary-rgb), 0.4);
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  font-weight: 600;
+  font-size: 1.05rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.call-fab-pill:disabled {
+  cursor: default;
+}
+
+.call-fab-pill.success {
+  background: rgba(16, 185, 129, 0.85); /* Verde esmeralda translúcido */
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.6), inset 0 0 10px rgba(16, 185, 129, 0.8);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.btn-text {
+  white-space: nowrap;
+}

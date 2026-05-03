@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2, ArrowLeft, Plus, Minus, User, Bell, ChevronDown, Settings } from 'lucide-react';
+import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2, ArrowLeft, Plus, Minus, User, Bell, ChevronDown, Settings, Pizza, Coffee, IceCream, Grape, Beef, Salad, Search, ChevronUp, Loader, Wallet, Check } from 'lucide-react';
 import CustomerVerification from '../components/CustomerVerification';
 import { useCustomerVerification } from '../hooks/useCustomerVerification';
 import { useCustomerOrders } from '../hooks/useOrders';
@@ -11,6 +11,7 @@ import { resolveImageUrl } from '../../data/api/httpClient';
 import { ORDER_STATUS_META, isActiveOrder } from '../../core/entities/Order';
 import { formatCurrency } from '../utils/formatter';
 import ItemDetailModal from '../components/PublicMenu/ItemDetailModal';
+import CallWaiterButton from '../components/PublicMenu/CallWaiterButton';
 import './PublicMenuPage.css';
 
 /**
@@ -56,20 +57,20 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
         .map(o => o.optionId)
         .sort()
         .join(',');
-      
-      const existingIndex = prev.findIndex((i) => 
+
+      const existingIndex = prev.findIndex((i) =>
         i.id === itemWithSelections.id && i.optionsKey === optionsKey
       );
 
       if (existingIndex > -1) {
         const next = [...prev];
-        next[existingIndex] = { 
-          ...next[existingIndex], 
+        next[existingIndex] = {
+          ...next[existingIndex],
           quantity: next[existingIndex].quantity + (itemWithSelections.quantity || 1)
         };
         return next;
       }
-      
+
       return [...prev, { ...itemWithSelections, optionsKey, quantity: itemWithSelections.quantity || 1 }];
     });
   };
@@ -92,6 +93,31 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   }, 0);
   const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
 
+  const [isCartExpanded, setIsCartExpanded] = useState(false);
+  const [cartPulsing, setCartPulsing] = useState(false);
+  const [showPaymentToast, setShowPaymentToast] = useState(false);
+  const [requestingPaymentId, setRequestingPaymentId] = useState(null);
+  const [paymentModal, setPaymentModal] = useState({ show: false, orderId: null, total: 0 });
+
+  const handleRequestPayment = (orderId, total) => {
+    setPaymentModal({ show: true, orderId, total });
+  };
+
+  const confirmPaymentRequest = async () => {
+    const { orderId } = paymentModal;
+    setPaymentModal(prev => ({ ...prev, show: false }));
+    setRequestingPaymentId(orderId);
+    try {
+      await updateStatus(orderId, 'payment_requested');
+      setShowPaymentToast(true);
+      setTimeout(() => setShowPaymentToast(false), 5000);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setRequestingPaymentId(null);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
     try {
@@ -102,14 +128,24 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
       await submitOrder(cartWithNotes, tableNumber);
       setCart([]);
       setItemNotes({});
+      setIsCartExpanded(false);
     } catch (err) {
       alert(err.message);
     }
   };
 
+  // Pulse effect when cart size changes
+  React.useEffect(() => {
+    if (cart.length > 0) {
+      setCartPulsing(true);
+      const timer = setTimeout(() => setCartPulsing(false), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [cart.length]);
+
   const activeOrders = orders.filter(isActiveOrder);
   const historyOrders = orders.filter((o) => !isActiveOrder(o));
-  
+
   const activeCategories = React.useMemo(() => {
     const usedIds = new Set(menu.map(item => item.categoryId));
     return categories.filter(c => usedIds.has(c.id));
@@ -147,7 +183,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
   const groupedMenu = menu.reduce((acc, item) => {
     if (activeCategoryId !== 'all' && item.categoryId !== activeCategoryId) return acc;
-    
+
     const cat = categories.find(c => c.id === item.categoryId) || { name: 'Otros', id: item.categoryId };
     if (!acc[cat.name]) acc[cat.name] = [];
     acc[cat.name].push(item);
@@ -156,23 +192,39 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
   return (
     <div className="public-menu-container">
+      <AnimatePresence>
+        {showPaymentToast && (
+          <motion.div 
+            initial={{ y: -50, opacity: 0, x: '-50%' }}
+            animate={{ y: 0, opacity: 1, x: '-50%' }}
+            exit={{ y: -50, opacity: 0, x: '-50%' }}
+            className="toast-notification"
+          >
+            <div className="toast-icon-box">
+              <Check size={18} />
+            </div>
+            <span>El personal ha sido avisado. En un momento traerán tu cuenta.</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="menu-top-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem' }}>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         </div>
 
         <div style={{ position: 'relative' }}>
-          <button 
+          <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.8rem', 
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.8rem',
               background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
               padding: '0.4rem 0.8rem', borderRadius: '30px', color: 'white', cursor: 'pointer'
             }}
           >
-            <div style={{ 
-              width: '32px', height: '32px', borderRadius: '50%', 
-              background: 'var(--primary)', display: 'flex', alignItems: 'center', 
-              justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem' 
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              background: 'var(--primary)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem'
             }}>
               {(session.fullName || 'C').charAt(0).toUpperCase()}
             </div>
@@ -182,13 +234,13 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
           <AnimatePresence>
             {showUserMenu && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="glass-card"
-                style={{ 
-                  position: 'absolute', top: '120%', right: 0, width: '250px', 
+                style={{
+                  position: 'absolute', top: '120%', right: 0, width: '250px',
                   zIndex: 1000, padding: '1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
                   border: '1px solid rgba(255,255,255,0.1)'
                 }}
@@ -200,23 +252,23 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <div style={{ 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '0.8rem 0.5rem', borderRadius: '10px'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.9rem' }}>
                       <Bell size={18} color={notificationsEnabled ? 'var(--primary)' : 'var(--text-muted)'} />
                       Notificaciones
                     </div>
-                    <button 
+                    <button
                       onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-                      style={{ 
-                        width: '40px', height: '22px', borderRadius: '20px', 
+                      style={{
+                        width: '40px', height: '22px', borderRadius: '20px',
                         background: notificationsEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
                         border: 'none', position: 'relative', cursor: 'pointer', transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{ 
+                      <div style={{
                         width: '16px', height: '16px', borderRadius: '50%', background: 'white',
                         position: 'absolute', top: '3px', left: notificationsEnabled ? '21px' : '3px',
                         transition: 'all 0.2s'
@@ -224,13 +276,13 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                     </button>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => {
                       setShowHistory(!showHistory);
                       setShowUserMenu(false);
                     }}
-                    style={{ 
-                      display: 'flex', alignItems: 'center', gap: '0.8rem', 
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.8rem',
                       padding: '0.8rem 0.5rem', borderRadius: '10px', background: 'transparent',
                       border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left',
                       fontSize: '0.9rem', width: '100%', transition: 'background 0.2s'
@@ -242,10 +294,10 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                     {showHistory ? 'Ocultar Historial' : 'Ver Historial de pedidos'}
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleLogout}
-                    style={{ 
-                      display: 'flex', alignItems: 'center', gap: '0.8rem', 
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.8rem',
                       padding: '0.8rem 0.5rem', borderRadius: '10px', background: 'transparent',
                       border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left',
                       fontSize: '0.9rem', fontWeight: '800', width: '100%', transition: 'background 0.2s'
@@ -289,271 +341,549 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
       {/* Active orders and history */}
       <div className="menu-sections-wrapper">
         <div className="orders-grid">
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {activeOrders.map((order, idx) => {
               const meta = ORDER_STATUS_META[order.status] || { name: order.status, color: 'var(--border)' };
+              const flow = ['pending', 'preparing', 'ready', 'delivered'];
+              const currentStepIndex = flow.indexOf(order.status);
+              const progressWidth = currentStepIndex === -1 ? 0 : (currentStepIndex / (flow.length - 1)) * 100;
+
+              const statusToRgb = {
+                pending: '245, 158, 11',
+                preparing: '59, 130, 246',
+                ready: '59, 130, 246',
+                delivered: '139, 92, 246',
+                payment_requested: '236, 72, 153'
+              };
+
               return (
                 <motion.div
                   key={order.id}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="glass-card active-order-card"
-                  style={{ borderLeft: `5px solid ${meta.color}`, marginBottom: 0 }}
+                  layout
+                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                  animate={{
+                    opacity: 1, y: 0, scale: 1,
+                    transition: { type: 'spring', damping: 20, stiffness: 100 }
+                  }}
+                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                  className={`glass-card active-order-card ${order.status === 'preparing' ? 'breathing-bg' : ''}`}
+                  style={{
+                    '--glow-color': `${meta.color}40`,
+                    padding: '1.75rem',
+                    marginBottom: 0,
+                    border: `1px solid ${meta.color}40`,
+                    boxShadow: `0 10px 30px -10px ${meta.color}30`
+                  }}
                 >
-                  <div className="order-header">
-                    <div className="order-info-left">
-                      <div className="order-icon-box" style={{ background: `${meta.color}20` }}>
-                        <ShoppingBag size={20} color={meta.color} />
+                  {/* Glowing perimeter effect */}
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: 'inherit',
+                    boxShadow: `inset 0 0 20px ${meta.color}15`, pointerEvents: 'none'
+                  }} />
+
+                  <div className="order-header" style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div className="order-icon-box" style={{
+                        background: `${meta.color}20`,
+                        padding: '0.6rem', borderRadius: '14px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        {order.status === 'ready' ? (
+                          <Bell size={22} color={meta.color} className="bounce-animation" />
+                        ) : (
+                          <ShoppingBag size={22} color={meta.color} />
+                        )}
                       </div>
                       <div>
-                        <span className="order-text-main">PEDIDO #{idx + 1}</span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ticket: {String(order.id).slice(-6)}</span>
-                      </div>
-                    </div>
-                    <span className="status-label" style={{ background: meta.color }}>
-                      {meta.name.toUpperCase()}
-                    </span>
-                  </div>
-
-                  <div className="order-details-box">
-                    {order.items?.map((it, i) => (
-                      <React.Fragment key={i}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>{it.quantity}x {it.menuItemName || 'Plato'}</span>
-                          <span>${formatCurrency((Number(it.unitPrice || 0) + (it.modifiers || []).reduce((s, m) => s + Number(m.price || 0), 0)) * it.quantity)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ fontWeight: '900', fontSize: '1.1rem', letterSpacing: '-0.5px' }}>PEDIDO #{idx + 1}</span>
+                          {order.status === 'ready' && <div className="dot" style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, boxShadow: `0 0 10px ${meta.color}` }} />}
                         </div>
-                        {it.modifiers?.length > 0 && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '-0.2rem', marginBottom: '0.3rem', paddingLeft: '1.2rem' }}>
-                            {it.modifiers.map(m => `+ ${m.name}`).join(', ')}
-                          </div>
-                        )}
-                      </React.Fragment>
-                    ))}
-                    <div className="total-row">
-                      <span>Total:</span>
-                      <span style={{ color: 'white' }}>${formatCurrency(order.totalPrice || 0)}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>ID: {String(order.id).slice(-8).toUpperCase()}</span>
+                      </div>
                     </div>
 
-                    {order.status === 'delivered' && (
-                      <button
-                        onClick={() => { if (confirm(`¿Solicitar la cuenta por $${formatCurrency(order.totalPrice || 0)}?`)) updateStatus(order.id, 'payment_requested'); }}
-                        className="pay-btn"
-                        style={{ background: '#ec4899', color: 'white' }}
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={order.status}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        style={{
+                          padding: '0.4rem 0.9rem', borderRadius: '30px',
+                          fontSize: '0.7rem', fontWeight: '900',
+                          background: `${meta.color}25`, color: meta.color,
+                          border: `1px solid ${meta.color}40`,
+                          letterSpacing: '0.5px'
+                        }}
                       >
-                        Solicitar Pago
-                      </button>
-                    )}
-
-                    {order.status === 'payment_requested' && (
-                      <div style={{ 
-                        marginTop: '1.2rem', padding: '0.8rem', borderRadius: '12px', 
-                        background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', 
-                        textAlign: 'center', fontWeight: '900', border: '1px dashed #ec4899'
-                      }}>
-                        Esperando Cobro...
-                      </div>
-                    )}
+                        {meta.name.toUpperCase()}
+                      </motion.span>
+                    </AnimatePresence>
                   </div>
+
+                  <div className="order-items-container" style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                      {order.items?.map((it, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '700' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '4px' }}>{it.quantity}x</span> {it.menuItemName}
+                            </span>
+                            {it.modifiers?.length > 0 && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                {it.modifiers.map(m => m.name).join(', ')}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'rgba(255,255,255,0.7)' }}>
+                            ${formatCurrency((Number(it.unitPrice || 0) + (it.modifiers || []).reduce((s, m) => s + Number(m.price || 0), 0)) * it.quantity)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)'
+                    }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>TOTAL PAGADO</span>
+                      <span style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white' }}>${formatCurrency(order.totalPrice || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Progress Timeline */}
+                  <div className="order-tracker-container">
+                    <div className="tracker-bar-bg">
+                      <div className="tracker-bar-fill" style={{ width: `${progressWidth}%`, background: meta.color, boxShadow: `0 0 10px ${meta.color}40` }} />
+                      {flow.map((step, sIdx) => (
+                        <div
+                          key={step}
+                          className={`tracker-step ${sIdx <= currentStepIndex ? 'completed' : ''} ${sIdx === currentStepIndex ? 'active' : ''}`}
+                          style={{
+                            ...(sIdx <= currentStepIndex ? { borderColor: meta.color, background: meta.color } : {}),
+                            ...(sIdx === currentStepIndex ? { '--node-glow-rgb': statusToRgb[step] } : {})
+                          }}
+                        >
+                          <span className="step-label" style={sIdx === currentStepIndex ? { color: 'white' } : {}}>
+                            {ORDER_STATUS_META[step].name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {order.status === 'delivered' && (
+                    <AnimatePresence mode="wait">
+                      {requestingPaymentId === order.id ? (
+                        <motion.div
+                          key="processing"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          className="pay-btn"
+                          style={{ 
+                            marginTop: '2.5rem', height: '56px', borderRadius: '14px',
+                            background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem'
+                          }}
+                        >
+                          <Loader size={20} className="spin" />
+                          <span>Notificando...</span>
+                        </motion.div>
+                      ) : (
+                        <motion.button
+                          key="initial"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          onClick={() => handleRequestPayment(order.id, order.totalPrice)}
+                          className="pay-btn"
+                          style={{ 
+                            marginTop: '2.5rem', height: '56px', borderRadius: '14px',
+                            background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+                            color: 'white', fontSize: '1rem', boxShadow: '0 10px 20px rgba(236, 72, 153, 0.3)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>
+                            <Wallet size={18} />
+                            Solicitar Cuenta
+                          </div>
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
+                  )}
+
+                  {order.status === 'payment_requested' && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="payment-confirmed-btn"
+                      style={{ 
+                        marginTop: '2.5rem', padding: '1.2rem', borderRadius: '14px', 
+                        textAlign: 'center', fontWeight: '900',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem'
+                      }}
+                    >
+                      <Check size={20} />
+                      Mesero Notificado
+                    </motion.div>
+                  )}
                 </motion.div>
               );
             })}
           </AnimatePresence>
         </div>
 
-          {historyOrders.length > 0 && (
-            <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
-              <button onClick={() => setShowHistory(!showHistory)} className="history-toggle-btn">
-                {showHistory ? 'Ocultar Historial' : `Ver Historial (${historyOrders.length})`}
-              </button>
-            </div>
-          )}
+        {historyOrders.length > 0 && (
+          <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
+            <button onClick={() => setShowHistory(!showHistory)} className="history-toggle-btn">
+              {showHistory ? 'Ocultar Historial' : `Ver Historial (${historyOrders.length})`}
+            </button>
+          </div>
+        )}
 
-          {showHistory && (
-            <div className="orders-grid">
-              {historyOrders.map((order) => (
-                <motion.div key={order.id} className="history-card" style={{ marginBottom: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ color: order.status === 'paid' ? '#4ade80' : '#f87171', fontWeight: '900', fontSize: '0.85rem' }}>
-                        {order.status === 'paid' ? 'COBRADO ✓' : 'CANCELADO ✗'}
-                      </span>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Ticket: {String(order.id).slice(-4)}</div>
-                    </div>
-                    <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>${formatCurrency(order.totalPrice || 0)}</div>
+        {showHistory && (
+          <div className="orders-grid">
+            {historyOrders.map((order) => (
+              <motion.div key={order.id} className="history-card" style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ color: order.status === 'paid' ? '#4ade80' : '#f87171', fontWeight: '900', fontSize: '0.85rem' }}>
+                      {order.status === 'paid' ? 'COBRADO ✓' : 'CANCELADO ✗'}
+                    </span>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Ticket: {String(order.id).slice(-4)}</div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
+                  <div style={{ fontWeight: '900', fontSize: '1.1rem' }}>${formatCurrency(order.totalPrice || 0)}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
 
         <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem' }}>{restaurant.description}</p>
       </div>
 
-      {/* Menu items */}
-      <div style={{ padding: '1.5rem' }}>
-        {/* Category Scroller */}
-        <div style={{ 
-          display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '1rem', 
-          marginBottom: '2rem', scrollbarWidth: 'none', msOverflowStyle: 'none'
-        }} className="no-scrollbar">
-          <button
-            onClick={() => setActiveCategoryId('all')}
-            style={{
-              padding: '0.6rem 1.2rem', borderRadius: '12px', whiteSpace: 'nowrap',
-              background: activeCategoryId === 'all' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-              color: activeCategoryId === 'all' ? 'white' : 'var(--text-muted)',
-              border: '1px solid', borderColor: activeCategoryId === 'all' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-              cursor: 'pointer', transition: 'all 0.3s', fontWeight: '700', fontSize: '0.9rem'
-            }}
-          >
-            Todos
-          </button>
-          {activeCategories.map((cat) => (
+      <div style={{ padding: '0 1.5rem 1.5rem' }}>
+        {/* Category Sticky Scroller */}
+        <div className="category-scroller-container no-scrollbar">
+          <div className="category-flex-wrapper no-scrollbar">
             <button
-              key={cat.id}
-              onClick={() => setActiveCategoryId(cat.id)}
-              style={{
-                padding: '0.6rem 1.2rem', borderRadius: '12px', whiteSpace: 'nowrap',
-                background: activeCategoryId === cat.id ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                color: activeCategoryId === cat.id ? 'white' : 'var(--text-muted)',
-                border: '1px solid', borderColor: activeCategoryId === cat.id ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-                cursor: 'pointer', transition: 'all 0.3s', fontWeight: '700', fontSize: '0.9rem'
-              }}
+              onClick={() => setActiveCategoryId('all')}
+              className={`category-pill ${activeCategoryId === 'all' ? 'active' : ''}`}
             >
-              {cat.name}
+              {activeCategoryId === 'all' && (
+                <motion.div layoutId="activePill" className="active-pill-bg" transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }} />
+              )}
+              <Utensils size={18} />
+              Todos
             </button>
-          ))}
+            {activeCategories.map((cat) => {
+              const IconComponent = {
+                'Entradas': Salad,
+                'Platos Fuertes': Beef,
+                'Bebidas': Coffee,
+                'Postres': IceCream,
+                'Pizzas': Pizza,
+                'Vinos': Grape
+              }[cat.name] || Utensils;
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategoryId(cat.id)}
+                  className={`category-pill ${activeCategoryId === cat.id ? 'active' : ''}`}
+                >
+                  {activeCategoryId === cat.id && (
+                    <motion.div layoutId="activePill" className="active-pill-bg" transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }} />
+                  )}
+                  <IconComponent size={18} />
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {Object.keys(groupedMenu).map((catName) => (
-          <div key={catName} style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ 
-              fontSize: '1.4rem', 
-              marginBottom: '1.2rem', 
-              color: 'var(--primary)', 
-              borderBottom: '2px solid rgba(var(--primary-rgb), 0.2)',
-              paddingBottom: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem'
-            }}>
-              <Utensils size={20} />
-              {catName}
-            </h3>
-            
-            <div className="menu-customer-grid">
-              {groupedMenu[catName].map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`glass-card menu-item-card ${!item.isAvailable ? 'out-of-stock' : ''}`}
-                  onClick={() => item.isAvailable && setSelectedItem(item)}
-                >
-                  <div className="menu-item-image-container">
-                    <img
-                      src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=500'}
-                      alt={item.name}
-                      className="menu-item-img"
-                    />
-                    <span className="price-tag">${formatCurrency(item.price)}</span>
-                    {!item.isAvailable && (
-                      <div className="stock-overlay">
-                        <EyeOff size={24} />
-                        <span>AGOTADO</span>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={activeCategoryId}
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.08 }
+              }
+            }}
+          >
+            {Object.keys(groupedMenu).map((catName) => (
+              <div key={catName} style={{ marginBottom: '3rem' }}>
+                <h3 style={{ 
+                  fontSize: '1.25rem', 
+                  marginBottom: '1.5rem', 
+                  color: 'white',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.8rem'
+                }}>
+                  <div style={{ width: '4px', height: '24px', background: 'var(--primary)', borderRadius: '4px' }} />
+                  {catName}
+                </h3>
+                
+                <div className="menu-customer-grid">
+                  {groupedMenu[catName].map((item) => (
+                    <motion.div
+                      key={item.id}
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        show: { opacity: 1, y: 0 }
+                      }}
+                      className={`menu-item-card ${!item.isAvailable ? 'unavailable-item' : ''}`}
+                      onClick={() => item.isAvailable && setSelectedItem(item)}
+                    >
+                      <div className="aspect-16-9">
+                        <img
+                          src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=500'}
+                          alt={item.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div className="floating-price-badge">
+                          ${formatCurrency(item.price)}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: '800' }}>{item.name}</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem', flex: 1, lineHeight: '1.4' }}>{item.description}</p>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 'auto' }}>
-                      <button 
-                        className="btn-primary" 
-                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', borderRadius: '10px' }}
-                        disabled={!item.isAvailable}
-                      >
-                        <Plus size={16} />
-                        Añadir
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        ))}
+
+                      <div style={{ padding: '1.25rem', paddingBottom: '2rem', position: 'relative' }}>
+                        <h4 className="item-card-title">{item.name}</h4>
+                        <p className="item-card-desc">
+                          {item.description}
+                        </p>
+                        
+                        <motion.button 
+                          whileTap={item.isAvailable ? { scale: 0.85 } : {}}
+                          className="circular-add-btn"
+                          disabled={!item.isAvailable}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if(item.isAvailable) setSelectedItem(item);
+                          }}
+                        >
+                          <Plus size={24} strokeWidth={3} />
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Floating cart */}
+      {/* Floating Cart Drawer */}
       <AnimatePresence>
         {cart.length > 0 && (
-          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="floating-cart-bar">
-            <div className="glass-card floating-cart-panel">
-              {/* Cart item list */}
-              <div className="cart-items-list">
-                {cart.map((cartItem, idx) => {
-                  const itemKey = cartItem.optionsKey ? `${cartItem.id}-${cartItem.optionsKey}` : cartItem.id;
-                  const itemTotal = (cartItem.price + (cartItem.selectedOptions || []).reduce((s, o) => s + o.extraPrice, 0)) * cartItem.quantity;
-                  return (
-                    <div key={`${itemKey}-${idx}`} className="cart-item-row" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                      <div className="cart-item-info">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span className="cart-item-name" style={{ fontWeight: '800' }}>{cartItem.quantity}x {cartItem.name}</span>
-                              <button onClick={() => removeFromCart(itemKey)} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', padding: '0 0.5rem', cursor: 'pointer' }}><Minus size={14} /></button>
-                              <button onClick={() => addToCart({ ...cartItem, quantity: 1 })} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', padding: '0 0.5rem', cursor: 'pointer' }}><Plus size={14} /></button>
-                            </div>
-                            {cartItem.selectedOptions?.length > 0 && (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem', paddingLeft: '1.5rem' }}>
-                                {cartItem.selectedOptions.map(o => o.name).join(', ')}
-                              </div>
-                            )}
-                          </div>
-                          <span className="cart-item-price" style={{ fontWeight: '800' }}>${formatCurrency(itemTotal)}</span>
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Nota: ej. sin cebolla..."
-                          value={itemNotes[`${itemKey}-${idx}`] || ''}
-                          onChange={(e) => setItemNotes(prev => ({ ...prev, [`${itemKey}-${idx}`]: e.target.value }))}
-                          className="cart-note-input"
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+          <div className="floating-cart-bar">
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: isCartExpanded ? 0 : "calc(100% - 100px)" }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="floating-cart-panel"
+            >
+              <div 
+                className="cart-handle-area" 
+                onClick={() => setIsCartExpanded(!isCartExpanded)}
+                style={{ cursor: 'pointer', paddingBottom: '0.5rem' }}
+              >
+                <div className="cart-handle" />
+                {!isCartExpanded && (
+                  <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '700', marginTop: '-4px' }}>
+                    Toca para ver tu pedido
+                  </div>
+                )}
               </div>
 
-              {/* Cart footer */}
+              <div className="cart-items-list no-scrollbar">
+                <AnimatePresence mode="popLayout">
+                  {cart.map((item) => {
+                    const itemKey = item.optionsKey ? `${item.id}-${item.optionsKey}` : item.id;
+                    const modsPrice = (item.selectedOptions || []).reduce((sum, opt) => sum + (opt.extraPrice || 0), 0);
+                    
+                    return (
+                      <motion.div 
+                        key={itemKey}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="cart-item-row"
+                      >
+                        <div className="cart-item-info">
+                          <div className="cart-item-name">{item.name}</div>
+                          {item.selectedOptions?.length > 0 && (
+                            <div className="cart-item-modifiers">
+                              {item.selectedOptions.map(opt => opt.name).join(', ')}
+                            </div>
+                          )}
+                          <textarea
+                            placeholder="Nota: ej. sin cebolla..."
+                            className="cart-note-textarea no-scrollbar"
+                            value={itemNotes[item.id] || ''}
+                            onChange={(e) => setItemNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                            onFocus={() => setIsCartExpanded(true)}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.8rem' }}>
+                          <span style={{ fontWeight: '800', color: 'var(--primary)' }}>
+                            ${formatCurrency((item.price + modsPrice) * item.quantity)}
+                          </span>
+                          <div className="qty-control" style={{ margin: 0, padding: '0.4rem', gap: '1rem' }}>
+                            <motion.button 
+                              whileTap={{ scale: 0.85 }}
+                              onClick={() => removeFromCart(itemKey)} 
+                              className="qty-btn" 
+                              style={{ background: 'rgba(255,255,255,0.1)' }}
+                            >
+                              <Minus size={16} />
+                            </motion.button>
+                            
+                            <div className="counter-wrapper">
+                              <AnimatePresence mode="wait">
+                                <motion.span 
+                                  key={item.quantity}
+                                  initial={{ y: 10, opacity: 0 }}
+                                  animate={{ y: 0, opacity: 1 }}
+                                  exit={{ y: -10, opacity: 0 }}
+                                  className="counter-number"
+                                >
+                                  {item.quantity}
+                                </motion.span>
+                              </AnimatePresence>
+                            </div>
+
+                            <motion.button 
+                              whileTap={{ scale: 0.85 }}
+                              onClick={() => addToCart(item)} 
+                              className="qty-btn" 
+                              style={{ background: 'var(--primary)' }}
+                            >
+                              <Plus size={16} />
+                            </motion.button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+
               <div className="cart-footer">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                  <div className="cart-icon-circle">
-                    <ShoppingBag size={20} color="white" />
-                    <span className="cart-qty-badge">{totalItems}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div className={`cart-icon-circle ${cartPulsing ? 'cart-pulse-animation' : ''}`}>
+                      <ShoppingBag size={24} color="black" />
+                      <div className="cart-qty-badge">{totalItems}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '700' }}>TOTAL ESTIMADO</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white' }}>${formatCurrency(cartTotal)}</div>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>${formatCurrency(cartTotal)}</p>
                 </div>
-                <button onClick={handlePlaceOrder} disabled={submitting} className="btn-primary" style={{ padding: '0.7rem 1.8rem', borderRadius: '20px' }}>
-                  {submitting ? <Loader2 className="spin" size={18} /> : 'Pedir Ahora'}
+
+                <button 
+                  onClick={handlePlaceOrder}
+                  disabled={submitting}
+                  className="btn-primary"
+                  style={{ 
+                    width: '100%', height: '56px', borderRadius: '18px', 
+                    fontSize: '1.1rem', fontWeight: '900',
+                    boxShadow: '0 10px 25px rgba(var(--primary-rgb), 0.4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem'
+                  }}
+                >
+                  {submitting ? (
+                    <Loader size={22} className="spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 size={22} />
+                      Pedir Ahora
+                    </>
+                  )}
                 </button>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      <ItemDetailModal 
-        item={selectedItem} 
-        isOpen={!!selectedItem} 
+      <AnimatePresence>
+        {paymentModal.show && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setPaymentModal({ show: false, orderId: null, total: 0 })}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-card"
+              style={{ 
+                width: '100%', maxWidth: '400px', position: 'relative', 
+                padding: '2rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+              }}
+            >
+              <div style={{ 
+                width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(236, 72, 153, 0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
+                color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)'
+              }}>
+                <Wallet size={32} />
+              </div>
+              
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', marginBottom: '0.5rem' }}>¿Solicitar cuenta?</h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
+                Se notificará al personal para traer la cuenta por un total de <br/>
+                <span style={{ color: 'white', fontWeight: '900', fontSize: '1.4rem' }}>${formatCurrency(paymentModal.total)}</span>
+              </p>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  onClick={() => setPaymentModal({ show: false, orderId: null, total: 0 })}
+                  style={{ 
+                    flex: 1, padding: '1rem', borderRadius: '14px', background: 'rgba(255,255,255,0.05)',
+                    color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmPaymentRequest}
+                  style={{ 
+                    flex: 1, padding: '1rem', borderRadius: '14px', background: 'var(--primary)',
+                    color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 10px 20px rgba(var(--primary-rgb), 0.3)'
+                  }}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ItemDetailModal
+        item={selectedItem}
+        isOpen={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         onConfirm={addToCart}
       />
+
+      <CallWaiterButton restaurantId={restaurantId} tableNumber={tableNumber} />
     </div>
   );
 };
