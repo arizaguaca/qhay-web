@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Utensils, QrCode, ArrowLeft, Store, Users, ClipboardList, Calendar, BarChart3 } from 'lucide-react';
+import { Clock, Utensils, QrCode, ArrowLeft, Store, Users, ClipboardList, Calendar, BarChart3, ChefHat, Wallet } from 'lucide-react';
 import MenuItemManager from '../components/dashboard/MenuItemManager';
 import OperatingHoursManager from '../components/dashboard/OperatingHoursManager';
 import QRManager from '../components/dashboard/QRManager';
 import RestaurantInfoManager from '../components/dashboard/RestaurantInfoManager';
 import StaffManager from '../components/dashboard/StaffManager';
 import OrderManager from '../components/dashboard/OrderManager';
+import TableManager from '../components/dashboard/TableManager';
+import KDSManager from '../components/dashboard/KDSManager';
+import CashierManager from '../components/dashboard/CashierManager';
 import { isStaff } from '../../core/entities/User';
 import './RestaurantDashboard.css';
 
@@ -23,11 +26,16 @@ const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
     try { return JSON.parse(localStorage.getItem('qhay_user') || 'null'); } catch { return null; }
   })();
   const userIsStaff = savedUser ? isStaff(savedUser) : false;
+  const isCook = savedUser?.role === 'cook';
+  const isCashier = savedUser?.role === 'cashier';
 
-  const [activeTab, setActiveTab] = useState(userIsStaff ? 'orders' : 'menu');
+  const [activeTab, setActiveTab] = useState(isCook ? 'kds' : isCashier ? 'caja' : userIsStaff ? 'tables' : 'menu');
 
   const tabs = [
+    { id: 'tables', label: 'Mesas', icon: <Store size={18} />, ownerOnly: false },
     { id: 'orders', label: 'Pedidos', icon: <ClipboardList size={18} />, ownerOnly: false },
+    { id: 'kds', label: 'Cocina', icon: <ChefHat size={18} />, ownerOnly: false },
+    { id: 'caja', label: 'Caja', icon: <Wallet size={18} />, ownerOnly: false },
     { id: 'reservations', label: 'Reservas', icon: <Calendar size={18} />, ownerOnly: false },
     { id: 'menu', label: 'Carta', icon: <Utensils size={18} />, ownerOnly: false },
     { id: 'hours', label: 'Horarios', icon: <Clock size={18} />, ownerOnly: true },
@@ -89,7 +97,10 @@ const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'menu' && <MenuItemManager restaurantId={restaurant.id} />}
+            {activeTab === 'tables' && <TableManager restaurantId={restaurant.id} />}
             {activeTab === 'orders' && <OrderManager restaurantId={restaurant.id} />}
+            {activeTab === 'kds' && <KDSManager restaurantId={restaurant.id} />}
+            {activeTab === 'caja' && <CashierManager restaurantId={restaurant.id} />}
             {activeTab === 'reservations' && (
               <div className="glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
                 <Calendar size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.5 }} />

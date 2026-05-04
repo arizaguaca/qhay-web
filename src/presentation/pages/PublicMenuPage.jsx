@@ -883,7 +883,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
         onConfirm={addToCart}
       />
 
-      <CallWaiterButton restaurantId={restaurantId} tableNumber={tableNumber} />
+      <CallWaiterButton restaurantId={restaurantId} tableNumber={tableNumber} customerId={customerId} />
     </div>
   );
 };
