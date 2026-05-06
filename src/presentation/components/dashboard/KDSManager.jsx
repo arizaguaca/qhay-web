@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSocket } from '../../context/SocketContext';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
 import { Clock, ChefHat, AlertCircle, CheckCircle2, PlayCircle, UtensilsCrossed } from 'lucide-react';
@@ -10,7 +11,35 @@ import { Clock, ChefHat, AlertCircle, CheckCircle2, PlayCircle, UtensilsCrossed 
  */
 const KDSManager = ({ restaurantId }) => {
   const { orders, loading, changeStatus, refetch } = useOrders(orderRepository, restaurantId);
+  const { socket, notify, connect, disconnect } = useSocket();
   const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // Socket Listeners for Kitchen (FIFO)
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    // Connect with handshake data
+    connect(restaurantId);
+
+    socket.emit('join_restaurant', restaurantId);
+
+    // Escuchar nuevas órdenes para la cocina
+    socket.on('new_order', (order) => {
+      console.log('🍳 [Socket] Nueva comanda recibida:', order);
+      refetch(); // Recargar lista para mantener sincronización total
+
+      notify(`Nueva Orden - Mesa ${order.tableNumber}`, {
+        body: 'Hay una nueva comanda pendiente en cocina.',
+        tag: `new-order-${order.id}`
+      });
+    });
+
+    return () => {
+      socket.emit('leave_restaurant', restaurantId);
+      socket.off('new_order');
+      disconnect();
+    };
+  }, [socket, restaurantId, refetch, notify, connect, disconnect]);
 
   // Update timer every minute
   useEffect(() => {

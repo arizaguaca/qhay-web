@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Clock, Loader2, Utensils, MessageSquareText, Bell } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
 import { ORDER_STATUS_META } from '../../../core/entities/Order';
@@ -13,7 +14,49 @@ import { formatCurrency } from '../../utils/formatter';
  * @param {{ restaurantId: string }} props
  */
 const OrderManager = ({ restaurantId }) => {
-  const { orders, loading, error, refetch, changeStatus } = useOrders(orderRepository, restaurantId);
+  const { orders, loading, error, refetch, changeStatus, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
+  const { socket, notify, connect, disconnect } = useSocket();
+
+  // Socket Listeners for Order Monitoring
+  React.useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    // Connect with handshake data
+    connect(restaurantId);
+
+    socket.emit('join_restaurant', restaurantId);
+
+    // 1. Escuchar Nuevos Pedidos
+    socket.on('new_order', (order) => {
+      console.log('📦 [Socket] Nuevo pedido:', order);
+      addOrUpdateOrder(order); // Actualizar localmente sin refetch
+      
+      notify(`Nuevo Pedido - Mesa ${order.tableNumber}`, {
+        body: 'Se ha recibido una nueva orden.',
+        tag: `new-order-${order.id}`
+      });
+    });
+
+    // 2. Escuchar Actualizaciones (ej: Solicitud de Pago)
+    socket.on('order_status_update', (data) => {
+      console.log('🔄 [Socket] Estado actualizado:', data);
+      addOrUpdateOrder(data); // Actualizar localmente
+      
+      if (data.status === 'payment_requested') {
+        notify(`Pago solicitado - Mesa ${data.tableNumber}`, {
+          body: 'El cliente ha solicitado la cuenta.',
+          tag: `payment-req-${data.id}`
+        });
+      }
+    });
+
+    return () => {
+      socket.emit('leave_restaurant', restaurantId);
+      socket.off('new_order');
+      socket.off('order_status_update');
+      disconnect();
+    };
+  }, [socket, restaurantId, addOrUpdateOrder, notify, connect, disconnect]);
 
   const statusList = Object.entries(ORDER_STATUS_META).map(([id, meta]) => ({ id, ...meta }));
 

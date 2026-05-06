@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOrders } from '../../hooks/useOrders';
+import { useSocket } from '../../context/SocketContext';
 import { orderRepository } from '../../../data/repositories/orderRepository';
 import { formatCurrency } from '../../utils/formatter';
 import { Wallet, Receipt, CheckCircle, Clock, Search, History, X, AlertCircle } from 'lucide-react';
@@ -10,9 +11,46 @@ import { Wallet, Receipt, CheckCircle, Clock, Search, History, X, AlertCircle } 
  * Focused on financial reconciliation, payment requests, pre-billing, and transaction history.
  */
 const CashierManager = ({ restaurantId }) => {
-  const { orders, loading, changeStatus, refetch } = useOrders(orderRepository, restaurantId);
+  const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
+  const { socket, notify, connect, disconnect } = useSocket();
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'history'
+
+  // Socket Listeners for Cashier
+  React.useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    // Connect with handshake data
+    connect(restaurantId);
+
+    socket.emit('join_restaurant', restaurantId);
+
+    // 1. Escuchar Nuevos Pedidos (para actualizar totales de mesa)
+    socket.on('new_order', (order) => {
+      console.log('💰 [Socket] Nuevo pedido en caja:', order);
+      addOrUpdateOrder(order);
+    });
+
+    // 2. Escuchar Actualizaciones (ej: Solicitud de Pago)
+    socket.on('order_status_update', (data) => {
+      console.log('🔄 [Socket] Estado actualizado en caja:', data);
+      addOrUpdateOrder(data);
+      
+      if (data.status === 'payment_requested') {
+        notify(`Mesa ${data.tableNumber} solicita la cuenta`, {
+          body: 'Un cliente está esperando para pagar.',
+          tag: `payment-req-${data.id}`
+        });
+      }
+    });
+
+    return () => {
+      socket.emit('leave_restaurant', restaurantId);
+      socket.off('new_order');
+      socket.off('order_status_update');
+      disconnect();
+    };
+  }, [socket, restaurantId, addOrUpdateOrder, notify, connect, disconnect]);
 
   // Extract all relevant active and history orders
   const activeOrders = orders.filter(o => o.status !== 'paid' && o.status !== 'cancelled');
@@ -27,8 +65,10 @@ const CashierManager = ({ restaurantId }) => {
 
   activeOrders.forEach(order => {
     const tNum = order.tableNumber;
+    if (!tNum) return; // Skip orders without a table number to avoid crashes
+
     if (!tableData[tNum]) {
-      tableData[tNum] = { tableNumber: tNum.toString(), orders: [], status: 'libre' };
+      tableData[tNum] = { tableNumber: String(tNum), orders: [], status: 'libre' };
     }
     tableData[tNum].orders.push(order);
     

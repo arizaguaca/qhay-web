@@ -31,10 +31,17 @@ export const useOrders = (orderRepository, restaurantId, pollInterval = 30000) =
   useEffect(() => {
     setLoading(true);
     fetchOrders().finally(() => setLoading(false));
+  }, [fetchOrders]);
 
-    const timer = setInterval(fetchOrders, pollInterval);
-    return () => clearInterval(timer);
-  }, [fetchOrders, pollInterval]);
+  const addOrUpdateOrder = useCallback((order) => {
+    setOrders((prev) => {
+      const exists = prev.find((o) => o.id === order.id);
+      if (exists) {
+        return prev.map((o) => (o.id === order.id ? { ...o, ...order } : o));
+      }
+      return [order, ...prev];
+    });
+  }, []);
 
   const changeStatus = useCallback(async (orderId, status) => {
     await updateOrderStatus(orderRepository, orderId, status);
@@ -43,7 +50,7 @@ export const useOrders = (orderRepository, restaurantId, pollInterval = 30000) =
     );
   }, [orderRepository]);
 
-  return { orders, loading, error, refetch: fetchOrders, changeStatus };
+  return { orders, loading, error, refetch: fetchOrders, changeStatus, addOrUpdateOrder };
 };
 
 /**

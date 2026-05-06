@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSocket } from '../../context/SocketContext';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
 import { apiFetch } from '../../../data/api/httpClient';
@@ -53,17 +54,19 @@ const TABLE_CONFIG = [
  */
 const TableManager = ({ restaurantId }) => {
   const { orders, loading, changeStatus, refetch } = useOrders(orderRepository, restaurantId);
+  const { socket, notify, connect, disconnect } = useSocket();
   const [selectedTable, setSelectedTable] = useState(null);
   const [filter, setFilter] = useState('all');
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [serviceRequests, setServiceRequests] = useState([]);
 
   const fetchServiceRequests = useCallback(async () => {
+    if (!restaurantId) return;
     try {
-      const res = await apiFetch(`/restaurants/${restaurantId}/service-requests?status=pending`);
-      if (res.ok) {
-        const data = await res.json();
-        setServiceRequests(Array.isArray(data) ? data : data.data || []);
+      const response = await apiFetch(`/restaurants/${restaurantId}/service-requests?status=pending`);
+      if (response.ok) {
+        const data = await response.json();
+        setServiceRequests(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Error fetching service requests:', err);
@@ -72,9 +75,46 @@ const TableManager = ({ restaurantId }) => {
 
   useEffect(() => {
     fetchServiceRequests();
-    const interval = setInterval(fetchServiceRequests, 30000);
-    return () => clearInterval(interval);
   }, [fetchServiceRequests]);
+
+  // Socket Listeners for Real-time Dashboard
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    // Connect with handshake data
+    connect(restaurantId);
+
+    // Join restaurant room (backup if server doesn't use handshake for room)
+    socket.emit('join_restaurant', restaurantId);
+
+    // 1. Escuchar Llamados al Mesero (Assistance)
+    socket.on('call_waiter', (newRequest) => {
+      console.log('🔔 [Socket] Nuevo llamado:', newRequest);
+      setServiceRequests(prev => {
+        if (prev.find(r => r.id === newRequest.id)) return prev;
+        return [newRequest, ...prev];
+      });
+      
+      // Feedback visual y sonoro
+      notify(`Mesa ${newRequest.tableNumber} solicita atención`, {
+        body: 'El cliente está esperando asistencia.',
+        tag: `call-${newRequest.id}`
+      });
+    });
+
+    // 2. Escuchar Actualizaciones de Pedidos
+    socket.on('order_status_update', (updatedOrder) => {
+      console.log('📦 [Socket] Pedido actualizado:', updatedOrder);
+      refetch(); // Forzamos recarga de la lista completa para sincronizar estado
+    });
+
+    return () => {
+      socket.emit('leave_restaurant', restaurantId);
+      socket.off('call_waiter');
+      socket.off('order_status_update');
+      disconnect(); // Detener conexión al salir del dashboard
+    };
+  }, [socket, restaurantId, notify, refetch, connect, disconnect]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 60000);

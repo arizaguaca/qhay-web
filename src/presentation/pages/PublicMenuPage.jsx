@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Utensils, ShoppingBag, LogOut, Loader2, Info, Clock, CheckCircle2, ArrowLeft, Plus, Minus, User, Bell, ChevronDown, Settings, Pizza, Coffee, IceCream, Grape, Beef, Salad, Search, ChevronUp, Loader, Wallet, Check } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 import CustomerVerification from '../components/CustomerVerification';
 import { useCustomerVerification } from '../hooks/useCustomerVerification';
 import { useCustomerOrders } from '../hooks/useOrders';
@@ -25,11 +26,51 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
   const session = getSession();
   const customerId = session.customer_id || session.customer?.CustomerID || session.customer?.id || session.phone || null;
+  const { socket, notify, connect, disconnect } = useSocket();
 
-  const { items: menu, categories, loading: menuLoading, error: menuError } = useMenu(menuRepository, restaurantId);
-  const { orders, submitting, submitOrder, confirmPayment, updateStatus } = useCustomerOrders(
+  const { items: menu, categories, loading: menuLoading, error: menuError, refetch: refetchMenu } = useMenu(menuRepository, restaurantId);
+  const { orders, submitting, submitOrder, confirmPayment, updateStatus, refetch: refetchOrders } = useCustomerOrders(
     orderRepository, customerId, restaurantId
   );
+
+  // Real-time Socket Listeners for Customers
+  React.useEffect(() => {
+    if (!socket || !restaurantId || !customerId) return;
+
+    // Connect with handshake data
+    connect(restaurantId);
+
+    // Join rooms for specific restaurant and customer updates
+    socket.emit('join_restaurant', restaurantId);
+    socket.emit('join_customer', customerId);
+
+    // 1. Listen for order status changes (e.g. "Order Ready")
+    socket.on('order_status_update', (data) => {
+      console.log('📦 [Socket] Pedido actualizado:', data);
+      refetchOrders();
+
+      if (data.status === 'ready') {
+        notify('¡Tu pedido está listo!', {
+          body: `El pedido #${String(data.id).slice(-4)} ya puede ser retirado.`,
+          tag: `order-ready-${data.id}`
+        });
+      }
+    });
+
+    // 2. Listen for menu updates (price changes, stock, etc)
+    socket.on('menu_update', () => {
+      console.log('📖 [Socket] El menú ha sido actualizado');
+      refetchMenu();
+    });
+
+    return () => {
+      socket.emit('leave_restaurant', restaurantId);
+      socket.emit('leave_customer', customerId);
+      socket.off('order_status_update');
+      socket.off('menu_update');
+      disconnect(); // Detener conexión al salir del menú
+    };
+  }, [socket, restaurantId, customerId, refetchOrders, refetchMenu, notify, connect, disconnect]);
 
   const [restaurant, setRestaurant] = React.useState(null);
   const [resLoading, setResLoading] = React.useState(true);
@@ -160,7 +201,8 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
     return <CustomerVerification authRepository={authRepository} onVerified={() => window.location.reload()} />;
   }
 
-  if (resLoading || menuLoading) {
+  // Solo mostrar loader si es la carga inicial y no tenemos datos
+  if (resLoading || (menuLoading && menu.length === 0)) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#0f172a' }}>
         <Loader2 className="spin" size={48} color="var(--primary)" />

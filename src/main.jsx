@@ -11,11 +11,15 @@ import { authRepository } from './data/repositories/authRepository';
 import { restaurantRepository } from './data/repositories/restaurantRepository';
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { SocketProvider } from './presentation/context/SocketContext.jsx';
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App
-      authRepository={authRepository}
-      restaurantRepository={restaurantRepository}
-    />
+    <SocketProvider>
+      <App
+        authRepository={authRepository}
+        restaurantRepository={restaurantRepository}
+      />
+    </SocketProvider>
   </StrictMode>
 );
