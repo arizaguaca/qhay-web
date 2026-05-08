@@ -48,10 +48,10 @@ const KDSManager = ({ restaurantId }) => {
   }, []);
 
   // Filter only orders relevant to the kitchen and sort FIFO (oldest first)
+  // New: Only show orders that have at least one item requiring preparation (prepTime > 0)
   const kitchenOrders = orders
-    .filter(o => o.status === 'pending' || o.status === 'preparing')
+    .filter(o => (o.status === 'pending' || o.status === 'preparing') && (o.items || []).some(item => (item.prepTime || 0) > 0))
     .sort((a, b) => {
-      // Assuming ID is sequential or using createdAt if available
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : parseInt(a.id);
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : parseInt(b.id);
       return dateA - dateB;
@@ -81,11 +81,11 @@ const KDSManager = ({ restaurantId }) => {
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '150px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600' }}>Pendientes</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white' }}>{orders.filter(o => o.status === 'pending').length}</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white' }}>{orders.filter(o => o.status === 'pending' && (o.items || []).some(i => (i.prepTime || 0) > 0)).length}</span>
         </div>
         <div style={{ flex: 1, minWidth: '150px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ color: '#60a5fa', fontSize: '0.9rem', fontWeight: '600' }}>En Preparación</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#60a5fa' }}>{orders.filter(o => o.status === 'preparing').length}</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#60a5fa' }}>{orders.filter(o => o.status === 'preparing' && (o.items || []).some(i => (i.prepTime || 0) > 0)).length}</span>
         </div>
         <div style={{ flex: 1, minWidth: '150px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ color: '#34d399', fontSize: '0.9rem', fontWeight: '600' }}>Listos</span>

@@ -53,9 +53,9 @@ const TABLE_CONFIG = [
  * circular wait-time indicators, customer avatars, and Glassmorphism aesthetics.
  */
 const TableManager = ({ restaurantId }) => {
-  const { orders, loading, changeStatus, refetch } = useOrders(orderRepository, restaurantId);
+  const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
   const { socket, notify, connect, disconnect } = useSocket();
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTableNumber, setSelectedTableNumber] = useState(null);
   const [filter, setFilter] = useState('all');
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [serviceRequests, setServiceRequests] = useState([]);
@@ -105,7 +105,12 @@ const TableManager = ({ restaurantId }) => {
     // 2. Escuchar Actualizaciones de Pedidos
     socket.on('order_status_update', (updatedOrder) => {
       console.log('📦 [Socket] Pedido actualizado:', updatedOrder);
-      refetch(); // Forzamos recarga de la lista completa para sincronizar estado
+      // Actualizar el estado local vía hook si lo soporta, o refetch
+      if (addOrUpdateOrder) {
+        addOrUpdateOrder(updatedOrder);
+      } else {
+        refetch();
+      }
     });
 
     return () => {
@@ -114,14 +119,14 @@ const TableManager = ({ restaurantId }) => {
       socket.off('order_status_update');
       disconnect(); // Detener conexión al salir del dashboard
     };
-  }, [socket, restaurantId, notify, refetch, connect, disconnect]);
+  }, [socket, restaurantId, notify, refetch, connect, disconnect, addOrUpdateOrder]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // Build table map from config
+  /* ─── Process Data ─── */
   const tableData = {};
   TABLE_CONFIG.forEach(cfg => {
     tableData[cfg.id] = { tableNumber: cfg.id.toString(), orders: [], status: 'idle', serviceRequest: null, type: cfg.type, customers: [] };
@@ -144,7 +149,7 @@ const TableManager = ({ restaurantId }) => {
 
       if (order.status === 'payment_requested') {
         tableData[tNum].status = 'payment';
-      } else if (['pending', 'preparing', 'ready'].includes(order.status) && tableData[tNum].status !== 'payment' && tableData[tNum].status !== 'assistance') {
+      } else if (['pending', 'preparing', 'ready', 'delivered'].includes(order.status) && tableData[tNum].status !== 'payment' && tableData[tNum].status !== 'assistance') {
         tableData[tNum].status = 'pending';
       }
     }
@@ -162,6 +167,7 @@ const TableManager = ({ restaurantId }) => {
   });
 
   const allTables = Object.values(tableData);
+  const currentSelectedTable = selectedTableNumber ? tableData[selectedTableNumber] : null;
 
   const filteredTables = allTables.filter(t => {
     if (filter === 'all') return true;
@@ -200,13 +206,33 @@ const TableManager = ({ restaurantId }) => {
     return Math.floor((currentTime - oldest) / 60000);
   };
 
-  const handleDeliverOrder = async (orderId) => { await changeStatus(orderId, 'delivered'); };
-  const handleMarkPaid = async (orderId) => { await changeStatus(orderId, 'paid'); setSelectedTable(null); };
+  const handleDeliverOrder = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    // Excepción: Si no requiere preparación, se puede entregar aunque esté 'pending'
+    const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
+    const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
+
+    if (!canDeliver) return;
+
+    await changeStatus(orderId, 'delivered');
+    
+    // Al usar currentSelectedTable (vinculado a tableData), el popup se refrescará solo.
+    if (currentSelectedTable) {
+      const remainingActive = currentSelectedTable.orders.filter(o => o.id !== orderId && o.status !== 'delivered');
+      if (remainingActive.length === 0 && !currentSelectedTable.serviceRequest) {
+        setSelectedTableNumber(null);
+      }
+    }
+  };
+
+  const handleMarkPaid = async (orderId) => { await changeStatus(orderId, 'paid'); setSelectedTableNumber(null); };
   const handleResolveServiceRequest = async (requestId) => {
     try {
       await apiFetch(`/service-requests/${requestId}/status`, { method: 'PUT', body: JSON.stringify({ status: 'resolved' }) });
       await fetchServiceRequests();
-      setSelectedTable(null);
+      setSelectedTableNumber(null);
     } catch (err) { console.error('Error resolving service request:', err); }
   };
 
@@ -296,7 +322,7 @@ const TableManager = ({ restaurantId }) => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => isOccupied && setSelectedTable(table)}
+                  onClick={() => isOccupied && setSelectedTableNumber(table.tableNumber)}
                   style={{
                     ...shape,
                     background: colors.bg,
@@ -391,34 +417,34 @@ const TableManager = ({ restaurantId }) => {
 
       {/* Table Details Modal */}
       <AnimatePresence>
-        {selectedTable && (
+        {currentSelectedTable && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="glass-card"
               style={{ width: '100%', maxWidth: '600px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}
             >
-              <button onClick={() => setSelectedTable(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
+              <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
               
               <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'white', marginBottom: '1.5rem' }}>
-                Mesa {selectedTable.tableNumber}
+                Mesa {currentSelectedTable.tableNumber}
               </h2>
 
               {/* Service Request Alert Banner */}
-              {selectedTable.serviceRequest && (
+              {currentSelectedTable.serviceRequest && (
                 <div style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid #06b6d4', borderRadius: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#22d3ee', fontWeight: '800' }}>
                       <BellRing size={20} /> Solicitud de Asistencia
                     </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {selectedTable.serviceRequest.created_at ? new Date(selectedTable.serviceRequest.created_at).toLocaleTimeString() : ''}
+                      {currentSelectedTable.serviceRequest.created_at ? new Date(currentSelectedTable.serviceRequest.created_at).toLocaleTimeString() : ''}
                     </span>
                   </div>
                   <button
-                    onClick={() => handleResolveServiceRequest(selectedTable.serviceRequest.id)}
+                    onClick={() => handleResolveServiceRequest(currentSelectedTable.serviceRequest.id)}
                     style={{
                       width: '100%', padding: '0.8rem', borderRadius: '12px',
                       background: '#06b6d4', color: 'white', fontWeight: '900', fontSize: '1rem',
@@ -432,17 +458,29 @@ const TableManager = ({ restaurantId }) => {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {selectedTable.orders.map(order => (
+                {currentSelectedTable.orders.filter(o => o.status !== 'delivered').map(order => (
                   <div key={order.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <span style={{ fontWeight: '800', color: 'var(--primary)' }}>Ticket #{String(order.id).slice(0,5)}</span>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{order.status}</span>
+                      <span style={{ 
+                        fontSize: '0.75rem', 
+                        background: order.status === 'ready' ? '#10b981' : 'rgba(255,255,255,0.08)',
+                        color: order.status === 'ready' ? 'white' : 'var(--text-muted)',
+                        padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: '800'
+                      }}>
+                        {order.status.toUpperCase()}
+                      </span>
                     </div>
                     
                     <div style={{ marginBottom: '1.5rem' }}>
                       {(order.items || []).map((item, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                          <span>{item.quantity}x {item.menuItemName}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>{item.quantity}x {item.menuItemName}</span>
+                            {(item.prepTime || 0) === 0 && (
+                              <span style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: '800' }}>Instant</span>
+                            )}
+                          </div>
                           <span>${formatCurrency(item.unitPrice * item.quantity)}</span>
                         </div>
                       ))}
@@ -452,9 +490,42 @@ const TableManager = ({ restaurantId }) => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                      {order.status !== 'delivered' && order.status !== 'payment_requested' && (
-                        <button onClick={() => handleDeliverOrder(order.id)} style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', background: 'var(--primary)', color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                          <Check size={18} strokeWidth={3} /> Marcar Entregado
+                      {order.status !== 'payment_requested' && (
+                        <button 
+                          onClick={() => handleDeliverOrder(order.id)} 
+                          disabled={!(() => {
+                            const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
+                            return order.status === 'ready' || (!needsPrep && order.status === 'pending');
+                          })()}
+                          style={{ 
+                            flex: 1, padding: '0.8rem', borderRadius: '12px', 
+                            background: (() => {
+                              const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
+                              const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
+                              return canDeliver ? 'var(--primary)' : 'rgba(255,255,255,0.05)';
+                            })(),
+                            color: (() => {
+                              const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
+                              const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
+                              return canDeliver ? 'white' : 'rgba(255,255,255,0.2)';
+                            })(),
+                            fontWeight: '800', border: 'none', 
+                            cursor: (() => {
+                              const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
+                              const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
+                              return canDeliver ? 'pointer' : 'not-allowed';
+                            })(),
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <Check size={18} strokeWidth={3} /> 
+                          {(() => {
+                            const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
+                            if (order.status === 'ready') return 'Marcar Entregado';
+                            if (!needsPrep && order.status === 'pending') return 'Entrega Inmediata';
+                            return 'En preparación...';
+                          })()}
                         </button>
                       )}
                       
