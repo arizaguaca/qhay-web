@@ -81,3 +81,32 @@ export const updateOrderStatus = (orderRepository, orderId, status) => {
   if (!status) throw new Error('Se requiere el nuevo estado.');
   return orderRepository.updateStatus(orderId, status);
 };
+
+/**
+ * requestBillForCustomer — Use case: marks all delivered orders of a customer as payment_requested.
+ * Operates on the customer's session as a whole, not on individual orders.
+ *
+ * @param {import('../repositories/IOrderRepository').IOrderRepository} orderRepository
+ * @param {string} customerId
+ * @param {string} restaurantId
+ * @returns {Promise<string[]>} IDs of the orders updated
+ */
+export const requestBillForCustomer = async (orderRepository, customerId, restaurantId) => {
+  if (!customerId) throw new Error('Se requiere el ID del cliente.');
+  if (!restaurantId) throw new Error('Se requiere el ID del restaurante.');
+
+  const all = await orderRepository.getByCustomer(customerId);
+  const deliveredOrders = all.filter(
+    (o) => o.restaurantId === String(restaurantId) && o.status === 'delivered'
+  );
+
+  if (deliveredOrders.length === 0) {
+    throw new Error('No hay pedidos entregados para solicitar la cuenta.');
+  }
+
+  await Promise.all(
+    deliveredOrders.map((o) => orderRepository.updateStatus(o.id, 'payment_requested'))
+  );
+
+  return deliveredOrders.map((o) => o.id);
+};

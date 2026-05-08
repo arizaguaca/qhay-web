@@ -8,8 +8,10 @@ import './CallWaiterButton.css';
  * CallWaiterButton — A floating pill button for the customer to request staff assistance.
  * Checks for existing pending requests on mount and polls every 15s.
  * The customer cannot send a new request until the waiter resolves the current one.
+ *
+ * @param {boolean} [props.billBarVisible] - when true, floats above the BillRequestBar
  */
-const CallWaiterButton = ({ restaurantId, tableNumber, customerId }) => {
+const CallWaiterButton = ({ restaurantId, tableNumber, customerId, billBarVisible = false }) => {
   const [status, setStatus] = useState('idle'); // 'idle' | 'calling' | 'notified'
 
   // Check if there's already a pending service request for this table
@@ -73,7 +75,7 @@ const CallWaiterButton = ({ restaurantId, tableNumber, customerId }) => {
   };
 
   return (
-    <div className="call-waiter-container">
+    <div className={`call-waiter-container ${billBarVisible ? 'call-waiter-container--above-bill' : ''}`}>
       <motion.button
         className={`call-fab-pill ${status === 'notified' ? 'success' : ''}`}
         onClick={handleCallWaiter}

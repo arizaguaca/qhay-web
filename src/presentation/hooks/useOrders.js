@@ -4,7 +4,9 @@ import {
   getOrdersByCustomer,
   placeOrder,
   updateOrderStatus,
+  requestBillForCustomer,
 } from '../../core/use-cases/order.use-cases';
+import { mapOrder } from '../../data/mappers/apiMappers';
 
 /**
  * useOrders — Manages orders for a restaurant dashboard (with polling).
@@ -33,7 +35,13 @@ export const useOrders = (orderRepository, restaurantId, pollInterval = 30000) =
     fetchOrders().finally(() => setLoading(false));
   }, [fetchOrders]);
 
-  const addOrUpdateOrder = useCallback((order) => {
+  /**
+   * addOrUpdateOrder — Accepts raw socket payloads or already-mapped entities.
+   * Always normalizes through mapOrder so field names (tableNumber, totalPrice, etc.)
+   * are consistent regardless of the backend field casing (ID, table_number, etc.).
+   */
+  const addOrUpdateOrder = useCallback((rawOrder) => {
+    const order = mapOrder(rawOrder);
     setOrders((prev) => {
       const exists = prev.find((o) => o.id === order.id);
       if (exists) {
@@ -109,5 +117,15 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, pol
     return updateStatus(orderId, 'paid');
   }, [updateStatus]);
 
-  return { orders, submitting, submitOrder, confirmPayment, updateStatus, refetch: fetchOrders };
+  /**
+   * requestBill — Marks all delivered orders of this customer as payment_requested.
+   * Operates at the customer session level, not per individual order.
+   */
+  const requestBill = useCallback(async () => {
+    if (!customerId) throw new Error('Sesión expirada. Por favor identifícate de nuevo.');
+    await requestBillForCustomer(orderRepository, customerId, restaurantId);
+    await fetchOrders();
+  }, [orderRepository, customerId, restaurantId, fetchOrders]);
+
+  return { orders, submitting, submitOrder, confirmPayment, updateStatus, requestBill, refetch: fetchOrders };
 };
