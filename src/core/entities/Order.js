@@ -49,6 +49,7 @@ export const createOrder = (raw) => ({
     menuItemName: item.menu_item_name ?? item.menuItemName ?? item.name ?? item.MenuItemName ?? '',
     quantity: item.quantity ?? 1,
     unitPrice: parseFloat(item.unit_price ?? item.unitPrice ?? item.price ?? 0),
+    prepTime: parseInt(item.prep_time ?? item.prepTime ?? 0),
     notes: item.notes ?? '',
     modifiers: (item.modifiers ?? []).map(m => ({
       name: m.name ?? m.Name ?? '',
