@@ -13,7 +13,7 @@ import { Wallet, Receipt, CheckCircle, Clock, Search, History, X, AlertCircle } 
 const CashierManager = ({ restaurantId }) => {
   const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
   const { socket, notify, connect, disconnect } = useSocket();
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTableNumber, setSelectedTableNumber] = useState(null);
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'history'
 
   // Socket Listeners for Cashier
@@ -81,6 +81,7 @@ const CashierManager = ({ restaurantId }) => {
 
   const activeTablesList = Object.values(tableData);
   const tablesWaitingForBill = activeTablesList.filter(t => t.status === 'esperando_cuenta');
+  const currentSelectedTable = selectedTableNumber ? tableData[selectedTableNumber] : null;
 
   const getTableStyle = (status) => {
     switch(status) {
@@ -94,10 +95,19 @@ const CashierManager = ({ restaurantId }) => {
   };
 
   const handleMarkPaid = async (orderId) => {
+    const tNum = selectedTableNumber;
     await changeStatus(orderId, 'paid');
-    // If the modal was open and only one order was left, close it
-    if (selectedTable && selectedTable.orders.length <= 1) {
-      setSelectedTable(null);
+    
+    // Verificamos si quedan otros pedidos activos para esta mesa en el estado global
+    const remainingActive = orders.filter(o => 
+      String(o.tableNumber) === String(tNum) && 
+      o.id !== orderId && 
+      o.status !== 'paid' && 
+      o.status !== 'cancelled'
+    );
+
+    if (remainingActive.length === 0) {
+      setSelectedTableNumber(null);
     }
   };
 
@@ -155,7 +165,7 @@ const CashierManager = ({ restaurantId }) => {
                   key={table.tableNumber}
                   whileHover={hasOrders ? { scale: 1.05 } : {}}
                   whileTap={hasOrders ? { scale: 0.95 } : {}}
-                  onClick={() => hasOrders && setSelectedTable(table)}
+                  onClick={() => hasOrders && setSelectedTableNumber(table.tableNumber)}
                   style={{
                     background: style.bg,
                     border: `2px solid ${style.border}`,
@@ -214,24 +224,24 @@ const CashierManager = ({ restaurantId }) => {
 
       {/* Pre-cuenta Modal */}
       <AnimatePresence>
-        {selectedTable && activeTab === 'active' && (
+        {currentSelectedTable && activeTab === 'active' && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="glass-card"
               style={{ width: '100%', maxWidth: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}
             >
-              <button onClick={() => setSelectedTable(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
+              <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
               
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'white' }}>Mesa {selectedTable.tableNumber}</h2>
+                <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'white' }}>Mesa {currentSelectedTable.tableNumber}</h2>
                 <p style={{ color: 'var(--text-muted)' }}>Pre-cuenta y Facturación</p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {selectedTable.orders.filter(o => o.status !== 'paid').map(order => (
+                {currentSelectedTable.orders.filter(o => o.status !== 'paid').map(order => (
                   <div key={order.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: '12px', padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                       <span style={{ fontWeight: '800', color: 'var(--primary)' }}>Ticket #{String(order.id).slice(0,5)}</span>
