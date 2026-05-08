@@ -13,6 +13,7 @@ import { ORDER_STATUS_META, isActiveOrder } from '../../core/entities/Order';
 import { formatCurrency } from '../utils/formatter';
 import ItemDetailModal from '../components/PublicMenu/ItemDetailModal';
 import CallWaiterButton from '../components/PublicMenu/CallWaiterButton';
+import BillRequestBar from '../components/PublicMenu/BillRequestBar';
 import './PublicMenuPage.css';
 
 /**
@@ -29,7 +30,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const { socket, notify, connect, disconnect } = useSocket();
 
   const { items: menu, categories, loading: menuLoading, error: menuError, refetch: refetchMenu } = useMenu(menuRepository, restaurantId);
-  const { orders, submitting, submitOrder, confirmPayment, updateStatus, refetch: refetchOrders } = useCustomerOrders(
+  const { orders, submitting, submitOrder, requestBill, refetch: refetchOrders } = useCustomerOrders(
     orderRepository, customerId, restaurantId
   );
 
@@ -137,25 +138,27 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
   const [isCartExpanded, setIsCartExpanded] = useState(false);
   const [cartPulsing, setCartPulsing] = useState(false);
   const [showPaymentToast, setShowPaymentToast] = useState(false);
-  const [requestingPaymentId, setRequestingPaymentId] = useState(null);
-  const [paymentModal, setPaymentModal] = useState({ show: false, orderId: null, total: 0 });
+  const [isRequestingBill, setIsRequestingBill] = useState(false);
+  const [paymentModal, setPaymentModal] = useState({ show: false, total: 0 });
 
-  const handleRequestPayment = (orderId, total) => {
-    setPaymentModal({ show: true, orderId, total });
+  const activeOrders   = orders.filter(isActiveOrder);
+  const totalActivePrice = activeOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+
+  const handleOpenBillModal = () => {
+    setPaymentModal({ show: true, total: totalActivePrice });
   };
 
   const confirmPaymentRequest = async () => {
-    const { orderId } = paymentModal;
-    setPaymentModal(prev => ({ ...prev, show: false }));
-    setRequestingPaymentId(orderId);
+    setPaymentModal({ show: false, total: 0 });
+    setIsRequestingBill(true);
     try {
-      await updateStatus(orderId, 'payment_requested');
+      await requestBill();
       setShowPaymentToast(true);
       setTimeout(() => setShowPaymentToast(false), 5000);
     } catch (err) {
       alert(err.message);
     } finally {
-      setRequestingPaymentId(null);
+      setIsRequestingBill(false);
     }
   };
 
@@ -184,7 +187,6 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
     }
   }, [cart.length]);
 
-  const activeOrders = orders.filter(isActiveOrder);
   const historyOrders = orders.filter((o) => !isActiveOrder(o));
 
   const activeCategories = React.useMemo(() => {
@@ -515,57 +517,6 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
                     </div>
                   </div>
 
-                  {order.status === 'delivered' && (
-                    <AnimatePresence mode="wait">
-                      {requestingPaymentId === order.id ? (
-                        <motion.div
-                          key="processing"
-                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          className="pay-btn"
-                          style={{ 
-                            marginTop: '2.5rem', height: '56px', borderRadius: '14px',
-                            background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem'
-                          }}
-                        >
-                          <Loader size={20} className="spin" />
-                          <span>Notificando...</span>
-                        </motion.div>
-                      ) : (
-                        <motion.button
-                          key="initial"
-                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          onClick={() => handleRequestPayment(order.id, order.totalPrice)}
-                          className="pay-btn"
-                          style={{ 
-                            marginTop: '2.5rem', height: '56px', borderRadius: '14px',
-                            background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-                            color: 'white', fontSize: '1rem', boxShadow: '0 10px 20px rgba(236, 72, 153, 0.3)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>
-                            <Wallet size={18} />
-                            Solicitar Cuenta
-                          </div>
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
-                  )}
-
-                  {order.status === 'payment_requested' && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="payment-confirmed-btn"
-                      style={{ 
-                        marginTop: '2.5rem', padding: '1.2rem', borderRadius: '14px', 
-                        textAlign: 'center', fontWeight: '900',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem'
-                      }}
-                    >
-                      <Check size={20} />
-                      Mesero Notificado
-                    </motion.div>
-                  )}
                 </motion.div>
               );
             })}
@@ -864,7 +815,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
           <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setPaymentModal({ show: false, orderId: null, total: 0 })}
+              onClick={() => setPaymentModal({ show: false, total: 0 })}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
             />
             <motion.div
@@ -894,7 +845,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button 
-                  onClick={() => setPaymentModal({ show: false, orderId: null, total: 0 })}
+                  onClick={() => setPaymentModal({ show: false, total: 0 })}
                   style={{ 
                     flex: 1, padding: '1rem', borderRadius: '14px', background: 'rgba(255,255,255,0.05)',
                     color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer'
@@ -925,7 +876,24 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber, onBack }) =
         onConfirm={addToCart}
       />
 
-      <CallWaiterButton restaurantId={restaurantId} tableNumber={tableNumber} customerId={customerId} />
+      {/* Bill request bar: only when cart is empty so it doesn't clash with the cart drawer */}
+      <AnimatePresence>
+        {cart.length === 0 && (
+          <BillRequestBar
+            activeOrders={activeOrders}
+            onRequestBill={handleOpenBillModal}
+            isRequesting={isRequestingBill}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* CallWaiterButton floats above the bill bar when it is visible */}
+      <CallWaiterButton
+        restaurantId={restaurantId}
+        tableNumber={tableNumber}
+        customerId={customerId}
+        billBarVisible={cart.length === 0 && activeOrders.length > 0}
+      />
     </div>
   );
 };
