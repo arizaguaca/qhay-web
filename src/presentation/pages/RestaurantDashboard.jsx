@@ -11,6 +11,7 @@ import TableManager from '../components/dashboard/TableManager';
 import KDSManager from '../components/dashboard/KDSManager';
 import CashierManager from '../components/dashboard/CashierManager';
 import { isStaff } from '../../core/entities/User';
+import { useSocket } from '../context/SocketContext';
 import './RestaurantDashboard.css';
 
 /**
@@ -21,6 +22,14 @@ import './RestaurantDashboard.css';
  */
 const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
   const [restaurant, setRestaurant] = useState(initialRestaurant);
+  const { connect, disconnect } = useSocket();
+
+  React.useEffect(() => {
+    if (restaurant.id) {
+      connect(restaurant.id);
+    }
+    return () => disconnect();
+  }, [restaurant.id, connect, disconnect]);
 
   const savedUser = (() => {
     try { return JSON.parse(localStorage.getItem('qhay_user') || 'null'); } catch { return null; }

@@ -17,14 +17,14 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     // Determine Backend URL (fallback to localhost if not specified)
     const fullUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-    
+
     // IMPORTANT: Socket.io treats any path after the domain as a Namespace.
     // If VITE_API_URL is 'http://localhost:8080/api/v1', we must use only 'http://localhost:8080'
     // otherwise it fails with "Invalid namespace".
     const baseUrl = new URL(fullUrl).origin;
-    
+
     console.log('📡 [Socket] Connecting to server root:', baseUrl);
-    
+
     const socketInstance = io(baseUrl, {
       transports: ['polling', 'websocket'],
       autoConnect: false,
@@ -37,6 +37,12 @@ export const SocketProvider = ({ children }) => {
     socketInstance.on('connect', () => {
       setIsConnected(true);
       console.log('🚀 [Socket] Connected to server ID:', socketInstance.id);
+      
+      // Auto-rejoin restaurant room on every connect/reconnect
+      if (currentRestaurantId.current) {
+        console.log('📡 [Socket] Auto-rejoining room:', currentRestaurantId.current);
+        socketInstance.emit('join_restaurant', currentRestaurantId.current);
+      }
     });
 
     socketInstance.on('disconnect', (reason) => {
@@ -74,12 +80,12 @@ export const SocketProvider = ({ children }) => {
     if (socket.connected && currentRestaurantId.current === restaurantId) return;
 
     console.log(`🔗 [Socket] Attempting connection for Restaurant: ${restaurantId}`);
-    
+
     socket.auth = { restaurantId };
     socket.io.opts.query = { restaurantId };
-    
+
     currentRestaurantId.current = restaurantId;
-    
+
     if (socket.connected) {
       socket.disconnect();
     }
@@ -117,7 +123,7 @@ export const SocketProvider = ({ children }) => {
   return (
     <SocketContext.Provider value={{ socket, isConnected, notify, connect, disconnect }}>
       {children}
-      
+
       {/* Visual Reconnection Indicator — Only show if we SHOULD be connected */}
       {shouldConnect && !isConnected && (
         <div style={{

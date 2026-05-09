@@ -40,12 +40,25 @@ export const useOrders = (orderRepository, restaurantId, pollInterval = 30000) =
    * Always normalizes through mapOrder so field names (tableNumber, totalPrice, etc.)
    * are consistent regardless of the backend field casing (ID, table_number, etc.).
    */
-  const addOrUpdateOrder = useCallback((rawOrder) => {
-    const order = mapOrder(rawOrder);
+  const addOrUpdateOrder = useCallback((order) => {
     setOrders((prev) => {
       const exists = prev.find((o) => o.id === order.id);
       if (exists) {
-        return prev.map((o) => (o.id === order.id ? { ...o, ...order } : o));
+        // Realizamos un merge inteligente para no perder datos (como tableNumber) 
+        // si el objeto de actualización viene parcial
+        const merged = { ...exists };
+        Object.keys(order).forEach(key => {
+          const newValue = order[key];
+          if (newValue !== null && newValue !== undefined) {
+            // Evitamos que actualizaciones parciales (ej: solo status) borren datos existentes
+            if (key === 'tableNumber' && newValue === null) return;
+            if (key === 'totalPrice' && newValue === 0 && exists.totalPrice > 0) return;
+            if (key === 'items' && Array.isArray(newValue) && newValue.length === 0 && (exists.items || []).length > 0) return;
+            
+            merged[key] = newValue;
+          }
+        });
+        return prev.map((o) => (o.id === order.id ? merged : o));
       }
       return [order, ...prev];
     });
@@ -58,7 +71,7 @@ export const useOrders = (orderRepository, restaurantId, pollInterval = 30000) =
     );
   }, [orderRepository]);
 
-  return { orders, loading, error, refetch: fetchOrders, changeStatus, addOrUpdateOrder };
+  return { orders, loading, error, refetch: fetchOrders, changeStatus, addOrUpdateOrder, mapOrder };
 };
 
 /**
@@ -78,7 +91,7 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, pol
     try {
       const data = await getOrdersByCustomer(orderRepository, customerId, restaurantId);
       setOrders(data);
-    } catch {}
+    } catch { }
   }, [orderRepository, customerId, restaurantId]);
 
   useEffect(() => {
@@ -117,10 +130,6 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, pol
     return updateStatus(orderId, 'paid');
   }, [updateStatus]);
 
-  /**
-   * requestBill — Marks all delivered orders of this customer as payment_requested.
-   * Operates at the customer session level, not per individual order.
-   */
   const requestBill = useCallback(async () => {
     if (!customerId) throw new Error('Sesión expirada. Por favor identifícate de nuevo.');
     await requestBillForCustomer(orderRepository, customerId, restaurantId);
