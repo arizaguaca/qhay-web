@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from '../../context/SocketContext';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
+import { mapOrder } from '../../../data/mappers/apiMappers';
 import { Clock, ChefHat, AlertCircle, CheckCircle2, PlayCircle, UtensilsCrossed } from 'lucide-react';
 
 /**
@@ -10,7 +11,7 @@ import { Clock, ChefHat, AlertCircle, CheckCircle2, PlayCircle, UtensilsCrossed 
  * Prioritizes FIFO ordering, displays notes clearly, and tracks time elapsed.
  */
 const KDSManager = ({ restaurantId }) => {
-  const { orders, loading, changeStatus, refetch } = useOrders(orderRepository, restaurantId);
+  const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
   const { socket, notify, connect, disconnect } = useSocket();
   const [currentTime, setCurrentTime] = useState(Date.now());
 
@@ -18,28 +19,22 @@ const KDSManager = ({ restaurantId }) => {
   useEffect(() => {
     if (!socket || !restaurantId) return;
 
-    // Connect with handshake data
-    connect(restaurantId);
-
-    socket.emit('join_restaurant', restaurantId);
-
     // Escuchar nuevas órdenes para la cocina
-    socket.on('new_order', (order) => {
-      console.log('🍳 [Socket] Nueva comanda recibida:', order);
-      refetch(); // Recargar lista para mantener sincronización total
+    socket.on('new_order', (data) => {
+      console.log('🍳 [Socket] Nueva comanda recibida:', data);
+      const orderData = data.order || data;
+      addOrUpdateOrder(mapOrder(orderData)); // Actualizar localmente sin refetch
 
-      notify(`Nueva Orden - Mesa ${order.tableNumber}`, {
+      notify(`Nueva Orden - Mesa ${orderData.tableNumber || orderData.table_number}`, {
         body: 'Hay una nueva comanda pendiente en cocina.',
-        tag: `new-order-${order.id}`
+        tag: `new-order-${orderData.id}`
       });
     });
 
     return () => {
-      socket.emit('leave_restaurant', restaurantId);
       socket.off('new_order');
-      disconnect();
     };
-  }, [socket, restaurantId, refetch, notify, connect, disconnect]);
+  }, [socket, restaurantId, addOrUpdateOrder, notify]);
 
   // Update timer every minute
   useEffect(() => {
@@ -133,8 +128,8 @@ const KDSManager = ({ restaurantId }) => {
                   }}
                 >
                   {/* KDS Header */}
-                  <div style={{ 
-                    padding: '1rem', 
+                  <div style={{
+                    padding: '1rem',
                     background: isDelayed ? '#ef4444' : order.status === 'preparing' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     borderBottom: '1px solid rgba(255,255,255,0.1)'
@@ -148,7 +143,8 @@ const KDSManager = ({ restaurantId }) => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
                       background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.8rem', borderRadius: '20px',
                       color: isDelayed ? 'white' : isWarning ? '#fbbf24' : '#10b981', fontWeight: '800'
                     }}>
@@ -162,9 +158,9 @@ const KDSManager = ({ restaurantId }) => {
                     {(order.items || []).map((item, i) => (
                       <div key={i} style={{ marginBottom: '1.2rem', paddingBottom: '1.2rem', borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
                         <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'flex-start' }}>
-                          <span style={{ 
-                            background: 'var(--primary)', color: 'white', fontWeight: '900', 
-                            padding: '0.2rem 0.6rem', borderRadius: '8px', fontSize: '1.1rem' 
+                          <span style={{
+                            background: 'var(--primary)', color: 'white', fontWeight: '900',
+                            padding: '0.2rem 0.6rem', borderRadius: '8px', fontSize: '1.1rem'
                           }}>
                             {item.quantity}x
                           </span>
@@ -172,7 +168,7 @@ const KDSManager = ({ restaurantId }) => {
                             {item.menuItemName}
                           </span>
                         </div>
-                        
+
                         {/* Modifiers */}
                         {item.modifiers?.length > 0 && (
                           <div style={{ marginLeft: '2.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
@@ -187,8 +183,8 @@ const KDSManager = ({ restaurantId }) => {
 
                         {/* Customer Notes */}
                         {item.notes && (
-                          <div style={{ 
-                            marginLeft: '2.5rem', marginTop: '0.8rem', padding: '0.6rem', 
+                          <div style={{
+                            marginLeft: '2.5rem', marginTop: '0.8rem', padding: '0.6rem',
                             background: 'rgba(239, 68, 68, 0.15)', borderLeft: '3px solid #ef4444',
                             borderRadius: '0 8px 8px 0', fontSize: '0.9rem', color: '#fca5a5', fontWeight: '600',
                             display: 'flex', gap: '0.5rem'
@@ -204,10 +200,10 @@ const KDSManager = ({ restaurantId }) => {
                   {/* Action Buttons */}
                   <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     {order.status === 'pending' && (
-                      <button 
+                      <button
                         onClick={() => changeStatus(order.id, 'preparing')}
-                        style={{ 
-                          width: '100%', padding: '1rem', borderRadius: '12px', 
+                        style={{
+                          width: '100%', padding: '1rem', borderRadius: '12px',
                           background: '#3b82f6', color: 'white', fontWeight: '900', fontSize: '1.1rem',
                           border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
                           boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
@@ -216,12 +212,12 @@ const KDSManager = ({ restaurantId }) => {
                         <PlayCircle size={20} /> Empezar a Preparar
                       </button>
                     )}
-                    
+
                     {order.status === 'preparing' && (
-                      <button 
+                      <button
                         onClick={() => changeStatus(order.id, 'ready')}
-                        style={{ 
-                          width: '100%', padding: '1rem', borderRadius: '12px', 
+                        style={{
+                          width: '100%', padding: '1rem', borderRadius: '12px',
                           background: '#10b981', color: 'white', fontWeight: '900', fontSize: '1.1rem',
                           border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
                           boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'

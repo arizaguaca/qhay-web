@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useOrders } from '../../hooks/useOrders';
 import { useSocket } from '../../context/SocketContext';
 import { orderRepository } from '../../../data/repositories/orderRepository';
+import { mapOrder } from '../../../data/mappers/apiMappers';
 import { formatCurrency } from '../../utils/formatter';
-import { Wallet, Receipt, CheckCircle, Clock, Search, History, X, AlertCircle } from 'lucide-react';
+import { Wallet, Receipt, CheckCircle, Clock, Search, History, X, AlertCircle, Users } from 'lucide-react';
 
 /**
  * CashierManager — specialized view for the Cashier role.
@@ -20,37 +21,33 @@ const CashierManager = ({ restaurantId }) => {
   React.useEffect(() => {
     if (!socket || !restaurantId) return;
 
-    // Connect with handshake data
-    connect(restaurantId);
-
-    socket.emit('join_restaurant', restaurantId);
-
     // 1. Escuchar Nuevos Pedidos (para actualizar totales de mesa)
-    socket.on('new_order', (order) => {
-      console.log('💰 [Socket] Nuevo pedido en caja:', order);
-      addOrUpdateOrder(order);
+    socket.on('new_order', (data) => {
+      console.log('💰 [Socket] Nuevo pedido en caja:', data);
+      const orderData = data.order || data;
+      addOrUpdateOrder(mapOrder(orderData));
     });
 
     // 2. Escuchar Actualizaciones (ej: Solicitud de Pago)
     socket.on('order_status_update', (data) => {
       console.log('🔄 [Socket] Estado actualizado en caja:', data);
-      addOrUpdateOrder(data);
+      const orderData = data.order || data;
+      const mapped = mapOrder(orderData);
+      addOrUpdateOrder(mapped);
       
-      if (data.status === 'payment_requested') {
-        notify(`Mesa ${data.tableNumber} solicita la cuenta`, {
+      if (mapped.status === 'payment_requested') {
+        notify(`Mesa ${mapped.tableNumber} solicita la cuenta`, {
           body: 'Un cliente está esperando para pagar.',
-          tag: `payment-req-${data.id}`
+          tag: `payment-req-${mapped.id}`
         });
       }
     });
 
     return () => {
-      socket.emit('leave_restaurant', restaurantId);
       socket.off('new_order');
       socket.off('order_status_update');
-      disconnect();
     };
-  }, [socket, restaurantId, addOrUpdateOrder, notify, connect, disconnect]);
+  }, [socket, restaurantId, addOrUpdateOrder, notify]);
 
   // Extract all relevant active and history orders
   const activeOrders = orders.filter(o => o.status !== 'paid' && o.status !== 'cancelled');
@@ -71,7 +68,7 @@ const CashierManager = ({ restaurantId }) => {
       tableData[tNum] = { tableNumber: String(tNum), orders: [], status: 'libre' };
     }
     tableData[tNum].orders.push(order);
-    
+
     if (order.status === 'payment_requested') {
       tableData[tNum].status = 'esperando_cuenta'; // Green alert
     } else if (['pending', 'preparing', 'ready', 'delivered'].includes(order.status) && tableData[tNum].status !== 'esperando_cuenta') {
@@ -84,7 +81,7 @@ const CashierManager = ({ restaurantId }) => {
   const currentSelectedTable = selectedTableNumber ? tableData[selectedTableNumber] : null;
 
   const getTableStyle = (status) => {
-    switch(status) {
+    switch (status) {
       case 'esperando_cuenta':
         return { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', color: '#10b981', text: 'Solicita Cuenta', alert: true };
       case 'ocupada':
@@ -94,21 +91,19 @@ const CashierManager = ({ restaurantId }) => {
     }
   };
 
-  const handleMarkPaid = async (orderId) => {
-    const tNum = selectedTableNumber;
-    await changeStatus(orderId, 'paid');
-    
-    // Verificamos si quedan otros pedidos activos para esta mesa en el estado global
-    const remainingActive = orders.filter(o => 
-      String(o.tableNumber) === String(tNum) && 
-      o.id !== orderId && 
-      o.status !== 'paid' && 
-      o.status !== 'cancelled'
-    );
-
-    if (remainingActive.length === 0) {
-      setSelectedTableNumber(null);
+  // Auto-close modal if no active orders remain
+  React.useEffect(() => {
+    if (selectedTableNumber) {
+      const table = tableData[selectedTableNumber];
+      const activeInTable = table?.orders.filter(o => o.status !== 'paid' && o.status !== 'cancelled') || [];
+      if (activeInTable.length === 0) {
+        setSelectedTableNumber(null);
+      }
     }
+  }, [selectedTableNumber, tableData]);
+
+  const handleMarkPaid = async (orderId) => {
+    await changeStatus(orderId, 'paid');
   };
 
   return (
@@ -121,14 +116,14 @@ const CashierManager = ({ restaurantId }) => {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Gestión de cobros y facturación de mesas</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button 
+          <button
             className={`btn-primary ${activeTab !== 'active' ? 'outline' : ''}`}
             onClick={() => setActiveTab('active')}
             style={{ padding: '0.5rem 1rem', background: activeTab === 'active' ? 'var(--primary)' : 'transparent', border: '1px solid var(--primary)' }}
           >
             Mesas Activas
           </button>
-          <button 
+          <button
             className={`btn-primary ${activeTab !== 'history' ? 'outline' : ''}`}
             onClick={() => setActiveTab('history')}
             style={{ padding: '0.5rem 1rem', background: activeTab === 'history' ? 'var(--primary)' : 'transparent', border: '1px solid var(--primary)' }}
@@ -234,55 +229,102 @@ const CashierManager = ({ restaurantId }) => {
               <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
-              
+
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'white' }}>Mesa {currentSelectedTable.tableNumber}</h2>
                 <p style={{ color: 'var(--text-muted)' }}>Pre-cuenta y Facturación</p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {currentSelectedTable.orders.filter(o => o.status !== 'paid').map(order => (
-                  <div key={order.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: '12px', padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      <span style={{ fontWeight: '800', color: 'var(--primary)' }}>Ticket #{String(order.id).slice(0,5)}</span>
-                      {order.status === 'payment_requested' && (
-                        <span style={{ background: '#10b981', color: 'white', fontSize: '0.75rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>PIDIÓ CUENTA</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {(() => {
+                  const ordersToDisplay = currentSelectedTable.orders.filter(o => o.status !== 'paid');
+                  // Group orders by customerId
+                  const groupedByCustomer = {};
+                  ordersToDisplay.forEach(o => {
+                    const cid = o.customerId || 'default';
+                    if (!groupedByCustomer[cid]) {
+                      groupedByCustomer[cid] = {
+                        customerId: cid,
+                        orders: [],
+                        totalPrice: 0,
+                        hasRequestedBill: false,
+                        customerName: o.customerName || 'Cliente'
+                      };
+                    }
+                    groupedByCustomer[cid].orders.push(o);
+                    groupedByCustomer[cid].totalPrice += (o.totalPrice || 0);
+                    if (o.status === 'payment_requested') {
+                      groupedByCustomer[cid].hasRequestedBill = true;
+                    }
+                  });
+
+                  return Object.values(groupedByCustomer).map(customerGroup => (
+                    <div key={customerGroup.customerId} style={{ 
+                      background: 'rgba(255,255,255,0.02)', 
+                      border: customerGroup.hasRequestedBill ? '1px solid rgba(16, 185, 129, 0.4)' : '1px dashed rgba(255,255,255,0.15)', 
+                      borderRadius: '16px', 
+                      padding: '1.5rem',
+                      boxShadow: customerGroup.hasRequestedBill ? '0 0 15px rgba(16, 185, 129, 0.1)' : 'none'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', paddingBottom: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <Users size={18} color="var(--primary)" />
+                          <span style={{ fontWeight: '900', color: 'white', fontSize: '1.1rem' }}>{customerGroup.customerName}</span>
+                        </div>
+                        {customerGroup.hasRequestedBill && (
+                          <span style={{ background: '#10b981', color: 'white', fontSize: '0.75rem', fontWeight: '800', padding: '0.3rem 0.6rem', borderRadius: '8px' }}>PAGO SOLICITADO</span>
+                        )}
+                      </div>
+
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        {customerGroup.orders.map(order => (
+                          <div key={order.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ticket #{String(order.id).slice(0, 5)}</div>
+                            {(order.items || []).map((item, i) => (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                                <span>{item.quantity}x {item.menuItemName}</span>
+                                <span>${formatCurrency(item.unitPrice * item.quantity)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-muted)' }}>Total Cliente</div>
+                        <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10b981' }}>${formatCurrency(customerGroup.totalPrice)}</div>
+                      </div>
+
+                      {customerGroup.hasRequestedBill ? (
+                        <button
+                          onClick={async () => {
+                            // Marcar como pagados todos los pedidos de este cliente en esta mesa
+                            for (const order of customerGroup.orders) {
+                              await handleMarkPaid(order.id);
+                            }
+                          }}
+                          style={{
+                            width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '12px',
+                            background: '#10b981', color: 'white', fontWeight: '900', fontSize: '1.1rem',
+                            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
+                            boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)'
+                          }}
+                        >
+                          <Receipt size={20} /> Registrar Pago
+                        </button>
+                      ) : (
+                        <div style={{ 
+                          marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', 
+                          background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', 
+                          textAlign: 'center', fontWeight: '700', fontSize: '0.9rem',
+                          border: '1px solid rgba(255,255,255,0.05)'
+                        }}>
+                          El cliente aún no ha solicitado la cuenta
+                        </div>
                       )}
                     </div>
-                    
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      {(order.items || []).map((item, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.9)', fontSize: '0.95rem', marginBottom: '0.6rem' }}>
-                          <span>{item.quantity}x {item.menuItemName}</span>
-                          <span>${formatCurrency(item.unitPrice * item.quantity)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px dashed rgba(255,255,255,0.1)' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white' }}>Total</div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#10b981' }}>${formatCurrency(order.totalPrice)}</div>
-                    </div>
-
-                    {order.status === 'payment_requested' ? (
-                      <button 
-                        onClick={() => handleMarkPaid(order.id)} 
-                        style={{ 
-                          width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', 
-                          background: '#10b981', color: 'white', fontWeight: '900', fontSize: '1.1rem',
-                          border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
-                          boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)' 
-                        }}
-                      >
-                        <Receipt size={20} /> Registrar Pago
-                      </button>
-                    ) : (
-                      <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', textAlign: 'center', fontWeight: '700', fontSize: '0.9rem' }}>
-                        La mesa aún no ha solicitado la cuenta
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </motion.div>
           </div>

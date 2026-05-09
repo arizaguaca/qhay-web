@@ -4,6 +4,7 @@ import { Package, Clock, Loader2, Utensils, MessageSquareText, Bell } from 'luci
 import { useSocket } from '../../context/SocketContext';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
+import { mapOrder } from '../../../data/mappers/apiMappers';
 import { ORDER_STATUS_META } from '../../../core/entities/Order';
 import { formatCurrency } from '../../utils/formatter';
 
@@ -21,42 +22,38 @@ const OrderManager = ({ restaurantId }) => {
   React.useEffect(() => {
     if (!socket || !restaurantId) return;
 
-    // Connect with handshake data
-    connect(restaurantId);
-
-    socket.emit('join_restaurant', restaurantId);
-
     // 1. Escuchar Nuevos Pedidos
-    socket.on('new_order', (order) => {
-      console.log('📦 [Socket] Nuevo pedido:', order);
-      addOrUpdateOrder(order); // Actualizar localmente sin refetch
+    socket.on('new_order', (data) => {
+      console.log('📦 [Socket] Nuevo pedido:', data);
+      const orderData = data.order || data;
+      addOrUpdateOrder(mapOrder(orderData)); // Actualizar localmente sin refetch
       
-      notify(`Nuevo Pedido - Mesa ${order.tableNumber}`, {
+      notify(`Nuevo Pedido - Mesa ${orderData.tableNumber || orderData.table_number}`, {
         body: 'Se ha recibido una nueva orden.',
-        tag: `new-order-${order.id}`
+        tag: `new-order-${orderData.id}`
       });
     });
 
     // 2. Escuchar Actualizaciones (ej: Solicitud de Pago)
     socket.on('order_status_update', (data) => {
       console.log('🔄 [Socket] Estado actualizado:', data);
-      addOrUpdateOrder(data); // Actualizar localmente
+      const orderData = data.order || data;
+      addOrUpdateOrder(mapOrder(orderData)); // Actualizar localmente
       
-      if (data.status === 'payment_requested') {
-        notify(`Pago solicitado - Mesa ${data.tableNumber}`, {
+      const mapped = mapOrder(orderData);
+      if (mapped.status === 'payment_requested') {
+        notify(`Pago solicitado - Mesa ${mapped.tableNumber}`, {
           body: 'El cliente ha solicitado la cuenta.',
-          tag: `payment-req-${data.id}`
+          tag: `payment-req-${mapped.id}`
         });
       }
     });
 
     return () => {
-      socket.emit('leave_restaurant', restaurantId);
       socket.off('new_order');
       socket.off('order_status_update');
-      disconnect();
     };
-  }, [socket, restaurantId, addOrUpdateOrder, notify, connect, disconnect]);
+  }, [socket, restaurantId, addOrUpdateOrder, notify]);
 
   const statusList = Object.entries(ORDER_STATUS_META).map(([id, meta]) => ({ id, ...meta }));
 

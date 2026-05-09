@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from '../../context/SocketContext';
 import { useOrders } from '../../hooks/useOrders';
 import { orderRepository } from '../../../data/repositories/orderRepository';
+import { mapOrder } from '../../../data/mappers/apiMappers';
 import { apiFetch } from '../../../data/api/httpClient';
 import { formatCurrency } from '../../utils/formatter';
 import { Package, BellRing, Wallet, CheckCircle2, Clock, X, Check, Utensils, LayoutGrid, Users } from 'lucide-react';
@@ -34,17 +35,17 @@ const ProgressRing = ({ elapsed, maxMinutes = 45, size = 32 }) => {
 
 /* ─── Table shape configs ─── */
 const TABLE_SHAPES = {
-  round:  { borderRadius: '50%', width: '140px', height: '140px', aspectRatio: '1/1' },
+  round: { borderRadius: '50%', width: '140px', height: '140px', aspectRatio: '1/1' },
   square: { borderRadius: '18px', width: '140px', height: '140px', aspectRatio: '1/1' },
-  long:   { borderRadius: '18px', width: '100%', height: 'auto', minHeight: '100px', gridColumn: 'span 2' },
+  long: { borderRadius: '18px', width: '100%', height: 'auto', minHeight: '100px', gridColumn: 'span 2' },
 };
 
 /* ─── Simulated layout — can be replaced by API config ─── */
 const TABLE_CONFIG = [
   { id: 1, type: 'round' }, { id: 2, type: 'round' }, { id: 3, type: 'square' }, { id: 4, type: 'square' },
-  { id: 5, type: 'long' },  { id: 6, type: 'round' }, { id: 7, type: 'round' },  { id: 8, type: 'square' },
-  { id: 9, type: 'square' },{ id: 10, type: 'long' }, { id: 11, type: 'round' }, { id: 12, type: 'round' },
-  { id: 13, type: 'square' },{ id: 14, type: 'square' },{ id: 15, type: 'long' }, { id: 16, type: 'round' },
+  { id: 5, type: 'long' }, { id: 6, type: 'round' }, { id: 7, type: 'round' }, { id: 8, type: 'square' },
+  { id: 9, type: 'square' }, { id: 10, type: 'long' }, { id: 11, type: 'round' }, { id: 12, type: 'round' },
+  { id: 13, type: 'square' }, { id: 14, type: 'square' }, { id: 15, type: 'long' }, { id: 16, type: 'round' },
 ];
 
 /**
@@ -54,7 +55,7 @@ const TABLE_CONFIG = [
  */
 const TableManager = ({ restaurantId }) => {
   const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
-  const { socket, notify, connect, disconnect } = useSocket();
+  const { socket, notify } = useSocket();
   const [selectedTableNumber, setSelectedTableNumber] = useState(null);
   const [filter, setFilter] = useState('all');
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -81,12 +82,6 @@ const TableManager = ({ restaurantId }) => {
   useEffect(() => {
     if (!socket || !restaurantId) return;
 
-    // Connect with handshake data
-    connect(restaurantId);
-
-    // Join restaurant room (backup if server doesn't use handshake for room)
-    socket.emit('join_restaurant', restaurantId);
-
     // 1. Escuchar Llamados al Mesero (Assistance)
     socket.on('call_waiter', (newRequest) => {
       console.log('🔔 [Socket] Nuevo llamado:', newRequest);
@@ -94,7 +89,7 @@ const TableManager = ({ restaurantId }) => {
         if (prev.find(r => r.id === newRequest.id)) return prev;
         return [newRequest, ...prev];
       });
-      
+
       // Feedback visual y sonoro
       notify(`Mesa ${newRequest.tableNumber} solicita atención`, {
         body: 'El cliente está esperando asistencia.',
@@ -102,24 +97,26 @@ const TableManager = ({ restaurantId }) => {
       });
     });
 
-    // 2. Escuchar Actualizaciones de Pedidos
-    socket.on('order_status_update', (updatedOrder) => {
-      console.log('📦 [Socket] Pedido actualizado:', updatedOrder);
-      // Actualizar el estado local vía hook si lo soporta, o refetch
-      if (addOrUpdateOrder) {
-        addOrUpdateOrder(updatedOrder);
-      } else {
-        refetch();
-      }
+    // 2. Escuchar Nuevos Pedidos (para actualizar el mapa instantáneamente)
+    socket.on('new_order', (data) => {
+      console.log('📦 [Socket] Nuevo pedido recibido:', data);
+      const orderData = data.order || data;
+      addOrUpdateOrder(mapOrder(orderData));
+    });
+
+    // 3. Escuchar Actualizaciones de Pedidos
+    socket.on('order_status_update', (data) => {
+      console.log('📦 [Socket] Pedido actualizado:', data);
+      const orderData = data.order || data;
+      addOrUpdateOrder(mapOrder(orderData));
     });
 
     return () => {
-      socket.emit('leave_restaurant', restaurantId);
       socket.off('call_waiter');
+      socket.off('new_order');
       socket.off('order_status_update');
-      disconnect(); // Detener conexión al salir del dashboard
     };
-  }, [socket, restaurantId, notify, refetch, connect, disconnect, addOrUpdateOrder]);
+  }, [socket, restaurantId, notify, addOrUpdateOrder]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 60000);
@@ -217,7 +214,7 @@ const TableManager = ({ restaurantId }) => {
     if (!canDeliver) return;
 
     await changeStatus(orderId, 'delivered');
-    
+
     // Al usar currentSelectedTable (vinculado a tableData), el popup se refrescará solo.
     if (currentSelectedTable) {
       const remainingActive = currentSelectedTable.orders.filter(o => o.id !== orderId && o.status !== 'delivered');
@@ -311,7 +308,7 @@ const TableManager = ({ restaurantId }) => {
 
               const dynamicAnimation =
                 table.status === 'assistance' ? 'cyanPulse 2s ease-in-out infinite' :
-                table.status === 'payment' ? 'neonPulse 2s ease-in-out infinite' : 'none';
+                  table.status === 'payment' ? 'neonPulse 2s ease-in-out infinite' : 'none';
 
               return (
                 <motion.button
@@ -402,8 +399,10 @@ const TableManager = ({ restaurantId }) => {
                     <div style={{
                       ...(table.type === 'long'
                         ? { fontSize: '1.1rem', fontWeight: '900', color: 'white' }
-                        : { position: 'absolute', bottom: table.type === 'round' ? '0.2rem' : '0.5rem', right: table.type === 'round' ? '0.2rem' : '0.5rem',
-                            background: 'rgba(0,0,0,0.5)', padding: '0.15rem 0.4rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', color: 'white' })
+                        : {
+                          position: 'absolute', bottom: table.type === 'round' ? '0.2rem' : '0.5rem', right: table.type === 'round' ? '0.2rem' : '0.5rem',
+                          background: 'rgba(0,0,0,0.5)', padding: '0.15rem 0.4rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', color: 'white'
+                        })
                     }}>
                       ${formatCurrency(tableTotal)}
                     </div>
@@ -427,7 +426,7 @@ const TableManager = ({ restaurantId }) => {
               <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
-              
+
               <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'white', marginBottom: '1.5rem' }}>
                 Mesa {currentSelectedTable.tableNumber}
               </h2>
@@ -461,9 +460,9 @@ const TableManager = ({ restaurantId }) => {
                 {currentSelectedTable.orders.filter(o => o.status !== 'delivered').map(order => (
                   <div key={order.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <span style={{ fontWeight: '800', color: 'var(--primary)' }}>Ticket #{String(order.id).slice(0,5)}</span>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
+                      <span style={{ fontWeight: '800', color: 'var(--primary)' }}>Ticket #{String(order.id).slice(0, 5)}</span>
+                      <span style={{
+                        fontSize: '0.75rem',
                         background: order.status === 'ready' ? '#10b981' : 'rgba(255,255,255,0.08)',
                         color: order.status === 'ready' ? 'white' : 'var(--text-muted)',
                         padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: '800'
@@ -471,7 +470,7 @@ const TableManager = ({ restaurantId }) => {
                         {order.status.toUpperCase()}
                       </span>
                     </div>
-                    
+
                     <div style={{ marginBottom: '1.5rem' }}>
                       {(order.items || []).map((item, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
@@ -491,14 +490,14 @@ const TableManager = ({ restaurantId }) => {
 
                     <div style={{ display: 'flex', gap: '1rem' }}>
                       {order.status !== 'payment_requested' && (
-                        <button 
-                          onClick={() => handleDeliverOrder(order.id)} 
+                        <button
+                          onClick={() => handleDeliverOrder(order.id)}
                           disabled={!(() => {
                             const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
                             return order.status === 'ready' || (!needsPrep && order.status === 'pending');
                           })()}
-                          style={{ 
-                            flex: 1, padding: '0.8rem', borderRadius: '12px', 
+                          style={{
+                            flex: 1, padding: '0.8rem', borderRadius: '12px',
                             background: (() => {
                               const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
                               const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
@@ -509,7 +508,7 @@ const TableManager = ({ restaurantId }) => {
                               const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
                               return canDeliver ? 'white' : 'rgba(255,255,255,0.2)';
                             })(),
-                            fontWeight: '800', border: 'none', 
+                            fontWeight: '800', border: 'none',
                             cursor: (() => {
                               const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
                               const canDeliver = order.status === 'ready' || (!needsPrep && order.status === 'pending');
@@ -519,7 +518,7 @@ const TableManager = ({ restaurantId }) => {
                             transition: 'all 0.2s ease'
                           }}
                         >
-                          <Check size={18} strokeWidth={3} /> 
+                          <Check size={18} strokeWidth={3} />
                           {(() => {
                             const needsPrep = (order.items || []).some(item => (item.prepTime || 0) > 0);
                             if (order.status === 'ready') return 'Marcar Entregado';
@@ -528,7 +527,7 @@ const TableManager = ({ restaurantId }) => {
                           })()}
                         </button>
                       )}
-                      
+
                       {order.status === 'payment_requested' && (
                         <button onClick={() => handleMarkPaid(order.id)} style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', background: '#10b981', color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}>
                           <Wallet size={18} strokeWidth={3} /> Cobrar y Cerrar

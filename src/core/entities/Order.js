@@ -23,13 +23,13 @@
 
 /** @type {Record<OrderStatus, {name: string, color: string}>} */
 export const ORDER_STATUS_META = {
-  pending:    { name: 'Pendiente',  color: '#f59e0b' },
-  preparing:  { name: 'Preparando', color: '#3b82f6' },
-  ready:             { name: 'Listo',      color: '#3b82f6' },
-  delivered:         { name: 'Entregado',  color: '#8b5cf6' },
+  pending: { name: 'Pendiente', color: '#f59e0b' },
+  preparing: { name: 'Preparando', color: '#3b82f6' },
+  ready: { name: 'Listo', color: '#3b82f6' },
+  delivered: { name: 'Entregado', color: '#8b5cf6' },
   payment_requested: { name: 'Cobro Solicitado', color: '#ec4899' },
-  paid:              { name: 'Pagado',     color: '#22c55e' },
-  cancelled:  { name: 'Cancelado',  color: '#f87171' },
+  paid: { name: 'Pagado', color: '#22c55e' },
+  cancelled: { name: 'Cancelado', color: '#f87171' },
 };
 
 /**
@@ -38,10 +38,10 @@ export const ORDER_STATUS_META = {
  * @returns {Order}
  */
 export const createOrder = (raw) => ({
-  id: raw.id ?? raw.ID ?? '',
+  id: raw.id ?? raw.ID ?? raw.orderId ?? '',
   restaurantId: String(raw.restaurant_id ?? raw.restaurantId ?? raw.RestaurantID ?? ''),
   customerId: raw.customer_id ?? raw.customerId ?? raw.CustomerID ?? '',
-  tableNumber: raw.table_number ?? raw.tableNumber ?? raw.TableNumber ?? 1,
+  tableNumber: raw.table_number ?? raw.tableNumber ?? raw.TableNumber ?? null,
   totalPrice: parseFloat(raw.totalAmount ?? raw.total_amount ?? raw.total_price ?? raw.totalPrice ?? raw.TotalPrice ?? 0),
   status: (raw.status ?? raw.Status ?? 'pending').toLowerCase(),
   items: (raw.items ?? []).map((item) => ({
