@@ -11,7 +11,7 @@ import { Clock, ChefHat, AlertCircle, CheckCircle2, PlayCircle, UtensilsCrossed 
  * Prioritizes FIFO ordering, displays notes clearly, and tracks time elapsed.
  */
 const KDSManager = ({ restaurantId }) => {
-  const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
+  const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId, ['pending', 'preparing']);
   const { socket, notify, connect, disconnect } = useSocket();
   const [currentTime, setCurrentTime] = useState(Date.now());
 
@@ -55,7 +55,7 @@ const KDSManager = ({ restaurantId }) => {
   const getElapsedMinutes = (createdAt) => {
     if (!createdAt) return 0;
     const orderTime = new Date(createdAt).getTime();
-    return Math.floor((currentTime - orderTime) / 60000);
+    return Math.max(0, Math.floor((currentTime - orderTime) / 60000));
   };
 
   return (
