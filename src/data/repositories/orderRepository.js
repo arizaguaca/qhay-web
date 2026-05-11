@@ -43,4 +43,23 @@ export const orderRepository = {
     });
     if (!res.ok) throw new Error('Error al actualizar el estado del pedido.');
   },
+
+  async getByTable(restaurantId, tableNumber) {
+    const res = await apiFetch(`/restaurants/${restaurantId}/tables/${tableNumber}/orders`);
+    if (!res.ok) throw new Error('Error al cargar los pedidos de la mesa.');
+    const data = await res.json();
+    const ordersArray = Array.isArray(data) ? data : (data ? [data] : []);
+    return ordersArray.map(mapOrder);
+  },
+
+  async updateTablePaymentStatus(restaurantId, tableNumber, customerId) {
+    const res = await apiFetch(
+      `/restaurants/${restaurantId}/tables/${tableNumber}/orders/payment-status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ customer_id: customerId }),
+      }
+    );
+    if (!res.ok) throw new Error('Error al procesar el pago de la mesa.');
+  },
 };

@@ -89,6 +89,50 @@ export const updateOrderStatus = (orderRepository, orderId, status) => {
 };
 
 /**
+ * getOrdersByTable — Use case: fetches all orders for a specific table.
+ *
+ * @param {import('../repositories/IOrderRepository').IOrderRepository} orderRepository
+ * @param {string} restaurantId
+ * @param {number|string} tableNumber
+ * @returns {Promise<import('../entities/Order').Order[]>}
+ */
+export const getOrdersByTable = (orderRepository, restaurantId, tableNumber) => {
+  if (!restaurantId) throw new Error('Se requiere el ID del restaurante.');
+  if (tableNumber == null) throw new Error('Se requiere el número de mesa.');
+  return orderRepository.getByTable(restaurantId, tableNumber);
+};
+
+/**
+ * requestTableBill — Use case: processes the payment for all active orders of a table.
+ * Validates that all active table orders are in "ready" status before proceeding.
+ *
+ * @param {import('../repositories/IOrderRepository').IOrderRepository} orderRepository
+ * @param {string} restaurantId
+ * @param {number|string} tableNumber
+ * @param {string} customerId - ID of the customer paying for the entire table
+ * @returns {Promise<void>}
+ */
+export const requestTableBill = async (orderRepository, restaurantId, tableNumber, customerId) => {
+  if (!restaurantId) throw new Error('Se requiere el ID del restaurante.');
+  if (tableNumber == null) throw new Error('Se requiere el número de mesa.');
+  if (!customerId) throw new Error('Se requiere el ID del cliente.');
+
+  const tableOrders = await orderRepository.getByTable(restaurantId, tableNumber);
+  const activeOrders = tableOrders.filter((o) => !['paid', 'cancelled'].includes(o.status));
+
+  if (activeOrders.length === 0) {
+    throw new Error('No hay pedidos activos en esta mesa.');
+  }
+
+  const allDelivered = activeOrders.every((o) => o.status === 'delivered');
+  if (!allDelivered) {
+    throw new Error('Todos los pedidos de la mesa deben estar entregados para poder pagar.');
+  }
+
+  await orderRepository.updateTablePaymentStatus(restaurantId, tableNumber, customerId);
+};
+
+/**
  * requestBillForCustomer — Use case: marks all delivered orders of a customer as payment_requested.
  * Operates on the customer's session as a whole, not on individual orders.
  *

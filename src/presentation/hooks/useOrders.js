@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getOrdersByRestaurant,
   getOrdersByCustomer,
+  getOrdersByTable,
   placeOrder,
   updateOrderStatus,
   requestBillForCustomer,
+  requestTableBill as requestTableBillUseCase,
 } from '../../core/use-cases/order.use-cases';
 import { mapOrder } from '../../data/mappers/apiMappers';
 
@@ -81,10 +83,12 @@ export const useOrders = (orderRepository, restaurantId, statuses = null, pollIn
  * @param {import('../../core/repositories/IOrderRepository').IOrderRepository} orderRepository
  * @param {string | null} customerId
  * @param {string} restaurantId
+ * @param {string|number|null} [tableNumber=null]
  * @param {number} [pollInterval=15000]
  */
-export const useCustomerOrders = (orderRepository, customerId, restaurantId, pollInterval = 15000) => {
+export const useCustomerOrders = (orderRepository, customerId, restaurantId, tableNumber = null, pollInterval = 15000) => {
   const [orders, setOrders] = useState([]);
+  const [tableOrders, setTableOrders] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchOrders = useCallback(async () => {
@@ -95,24 +99,36 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, pol
     } catch { }
   }, [orderRepository, customerId, restaurantId]);
 
+  const fetchTableOrders = useCallback(async () => {
+    if (!restaurantId || tableNumber == null) return;
+    try {
+      const data = await getOrdersByTable(orderRepository, restaurantId, tableNumber);
+      setTableOrders(data);
+    } catch { }
+  }, [orderRepository, restaurantId, tableNumber]);
+
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+    fetchTableOrders();
+  }, [fetchOrders, fetchTableOrders]);
 
   useEffect(() => {
-    if (orders.length === 0) return;
-    const timer = setInterval(fetchOrders, pollInterval);
+    if (orders.length === 0 && tableOrders.length === 0) return;
+    const timer = setInterval(() => {
+      fetchOrders();
+      fetchTableOrders();
+    }, pollInterval);
     return () => clearInterval(timer);
-  }, [orders.length, fetchOrders, pollInterval]);
+  }, [orders.length, tableOrders.length, fetchOrders, fetchTableOrders, pollInterval]);
 
-  const submitOrder = useCallback(async (cart, tableNumber) => {
+  const submitOrder = useCallback(async (cart, tNumber) => {
     if (!customerId) throw new Error('Sesión expirada. Por favor identifícate de nuevo.');
     setSubmitting(true);
     try {
       const newOrder = await placeOrder(orderRepository, {
         restaurantId,
         customerId,
-        tableNumber,
+        tableNumber: tNumber,
         cart,
       });
       setOrders((prev) => [newOrder, ...prev]);
@@ -137,5 +153,26 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, pol
     await fetchOrders();
   }, [orderRepository, customerId, restaurantId, fetchOrders]);
 
-  return { orders, submitting, submitOrder, confirmPayment, updateStatus, requestBill, refetch: fetchOrders };
+  const requestTableBill = useCallback(async () => {
+    if (!customerId) throw new Error('Sesión expirada. Por favor identifícate de nuevo.');
+    await requestTableBillUseCase(orderRepository, restaurantId, tableNumber, customerId);
+    await fetchTableOrders();
+  }, [orderRepository, restaurantId, tableNumber, customerId, fetchTableOrders]);
+
+  const refetchAll = useCallback(async () => {
+    await fetchOrders();
+    await fetchTableOrders();
+  }, [fetchOrders, fetchTableOrders]);
+
+  return {
+    orders,
+    tableOrders,
+    submitting,
+    submitOrder,
+    confirmPayment,
+    updateStatus,
+    requestBill,
+    requestTableBill,
+    refetch: refetchAll,
+  };
 };
