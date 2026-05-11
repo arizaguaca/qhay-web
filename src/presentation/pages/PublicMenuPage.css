@@ -616,8 +616,8 @@
 
 /* Order Tracker & Status Effects (Restored) */
 .order-tracker-container {
-    margin: 2rem 0 1rem;
-    padding: 0 0.5rem;
+    margin: 2rem 0 0.5rem;
+    padding: 0;
 }
 
 .tracker-bar-bg {
@@ -680,6 +680,7 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
+
 
 .tracker-step.active .step-label,
 .tracker-step.completed .step-label {
