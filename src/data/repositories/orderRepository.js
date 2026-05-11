@@ -6,8 +6,12 @@ import { mapOrder } from '../mappers/apiMappers';
  * @implements {import('../../core/repositories/IOrderRepository').IOrderRepository}
  */
 export const orderRepository = {
-  async getByRestaurant(restaurantId) {
-    const res = await apiFetch(`/orders?restaurant_id=${restaurantId}`);
+  async getByRestaurant(restaurantId, statuses) {
+    let url = `/orders?restaurant_id=${restaurantId}`;
+    if (statuses && statuses.length > 0) {
+      url += `&statuses=${statuses.join(',')}`;
+    }
+    const res = await apiFetch(url);
     if (!res.ok) throw new Error('Error al cargar los pedidos.');
     const data = await res.json();
     const ordersArray = Array.isArray(data) ? data : (data ? [data] : []);

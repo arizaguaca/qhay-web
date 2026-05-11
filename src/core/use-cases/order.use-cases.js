@@ -5,9 +5,9 @@
  * @param {string} restaurantId
  * @returns {Promise<import('../entities/Order').Order[]>}
  */
-export const getOrdersByRestaurant = (orderRepository, restaurantId) => {
+export const getOrdersByRestaurant = (orderRepository, restaurantId, statuses) => {
   if (!restaurantId) throw new Error('Se requiere el ID del restaurante.');
-  return orderRepository.getByRestaurant(restaurantId);
+  return orderRepository.getByRestaurant(restaurantId, statuses);
 };
 
 /**

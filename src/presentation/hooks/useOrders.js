@@ -15,20 +15,21 @@ import { mapOrder } from '../../data/mappers/apiMappers';
  * @param {string} restaurantId
  * @param {number} [pollInterval=30000] - polling interval in ms
  */
-export const useOrders = (orderRepository, restaurantId, pollInterval = 30000) => {
+export const useOrders = (orderRepository, restaurantId, statuses = null, pollInterval = 30000) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentStatuses, setCurrentStatuses] = useState(statuses);
 
   const fetchOrders = useCallback(async () => {
     if (!restaurantId) return;
     try {
-      const data = await getOrdersByRestaurant(orderRepository, restaurantId);
+      const data = await getOrdersByRestaurant(orderRepository, restaurantId, currentStatuses);
       setOrders(data);
     } catch (err) {
       setError(err.message);
     }
-  }, [orderRepository, restaurantId]);
+  }, [orderRepository, restaurantId, currentStatuses]);
 
   useEffect(() => {
     setLoading(true);
