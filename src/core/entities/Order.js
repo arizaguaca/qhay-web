@@ -18,6 +18,7 @@
  * @property {number} tableNumber
  * @property {number} totalPrice
  * @property {OrderStatus} status
+ * @property {string|null} createdAt - ISO 8601 timestamp
  * @property {OrderItem[]} items
  */
 
@@ -44,8 +45,7 @@ export const createOrder = (raw) => ({
   tableNumber: raw.table_number ?? raw.tableNumber ?? raw.TableNumber ?? null,
   totalPrice: parseFloat(raw.totalAmount ?? raw.total_amount ?? raw.total_price ?? raw.totalPrice ?? raw.TotalPrice ?? 0),
   status: (raw.status ?? raw.Status ?? 'pending').toLowerCase(),
-  createdAt: raw.created_at ?? raw.createdAt ?? raw.CreatedAt ?? null,
-  updatedAt: raw.updated_at ?? raw.updatedAt ?? raw.UpdatedAt ?? null,
+  createdAt: raw.created_at ?? raw.createdAt ?? raw.CreatedAt ?? raw.created ?? null,
   items: (raw.items ?? []).map((item) => ({
     menuItemId: item.menu_item_id ?? item.menuItemId ?? item.MenuItemID ?? '',
     menuItemName: item.menu_item_name ?? item.menuItemName ?? item.name ?? item.MenuItemName ?? '',

@@ -21,7 +21,13 @@ export const getOrdersByRestaurant = (orderRepository, restaurantId, statuses) =
 export const getOrdersByCustomer = async (orderRepository, customerId, restaurantId) => {
   if (!customerId) throw new Error('Se requiere el ID del cliente.');
   const all = await orderRepository.getByCustomer(customerId);
-  return all.filter((o) => o.restaurantId === String(restaurantId));
+  return all
+    .filter((o) => o.restaurantId === String(restaurantId))
+    .sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 };
 
 /**
