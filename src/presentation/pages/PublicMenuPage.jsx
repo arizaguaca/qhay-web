@@ -70,8 +70,8 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
     refetch: refetchMenu,
   } = useMenu(menuRepository, restaurantId);
 
-  const { orders, submitting, submitOrder, requestBill, refetch: refetchOrders } =
-    useCustomerOrders(orderRepository, customerId, restaurantId);
+  const { orders, tableOrders, submitting, submitOrder, requestBill, requestTableBill, refetch: refetchOrders } =
+    useCustomerOrders(orderRepository, customerId, restaurantId, tableNumber);
 
   const {
     cart,
@@ -635,7 +635,9 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
       {cart.length === 0 && (
         <ActiveOrdersPanel
           activeOrders={activeOrders}
+          tableOrders={tableNumber ? tableOrders : null}
           onRequestBill={requestBill}
+          onRequestTableBill={requestTableBill}
           onExpandChange={setIsOrdersPanelExpanded}
         />
       )}
