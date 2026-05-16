@@ -1,64 +1,87 @@
-# QHay Web - Sistema de Gestión de Menú Digital
+# QHay Web - Ecosistema Gastronómico Digital
 
-Este es el frontend de la plataforma **QHay**, un ecosistema diseñado para transformar la experiencia en restaurantes mediante menús digitales interactivos, gestión de pedidos en tiempo real y administración inteligente del local.
+**QHay** es una plataforma integral diseñada para modernizar la operación de restaurantes. Este repositorio contiene el frontend de la aplicación, construido con una arquitectura sólida y una interfaz premium (Glassmorphism) para ofrecer la mejor experiencia tanto a clientes como a administradores.
+
+---
 
 ## 🌟 Características Principales
 
-### Para Clientes (Menú Público)
-- **Menú Categorizado**: Navegación fluida entre categorías (Entradas, Platos Fuertes, Bebidas, Postres).
-- **Carrito de Compras**: Gestión intuitiva de pedidos con personalización de cantidades.
-- **Historial de Pedidos**: Seguimiento en tiempo real del estado de la orden (Pendiente, Preparando, Listo, Entregado).
-- **Solicitud de Pago**: Botón directo para avisar al personal cuando el cliente está listo para pagar.
+### 📱 Experiencia del Cliente (Menú Digital)
+- **Acceso por QR**: Menú interactivo vinculado automáticamente a la mesa del cliente.
+- **Carrito de Compras Inteligente**: Gestión de pedidos con personalización de cantidades y notas especiales.
+- **Seguimiento en Tiempo Real**: Visualización del estado de la orden (Pendiente, Preparando, Listo, Entregado).
+- **Solicitud de Servicios**: Botones directos para solicitar la cuenta o asistencia del personal.
 
-### Para Restaurantes (Dashboard Administrativo)
-- **Monitor de Pedidos en Tiempo Real**: Panel con notificaciones visuales y auditivas.
-- **Alertas de Cobro**: Animaciones de pulso y notificaciones llamativas cuando un cliente solicita la cuenta.
-- **Gestión de Carta**: CRUD completo de platos, categorías y disponibilidad.
-- **Administración de Staff**: Registro y control de roles de meseros y administradores.
-- **Gestión de QRs**: Generación individual o masiva de códigos QR por mesa con descarga directa.
-- **Horarios de Atención**: Configuración flexible de apertura y cierre por día de la semana.
+### 📊 Dashboard Administrativo (Módulos)
+El panel de administración está dividido en módulos especializados para cada área del restaurante:
+
+1.  **🍳 KDS (Kitchen Display System)**: Monitor de cocina con vista FIFO, cronómetros de preparación y alertas de retraso. Filtra automáticamente ítems que no requieren preparación.
+2.  **💰 Gestión de Caja (Cashier)**: Control de cuentas por pagar, registro de pagos y cierre de pedidos. Incluye agrupamiento de órdenes por cliente/mesa.
+3.  **🪑 Gestión de Mesas**: Mapa interactivo para visualizar el estado de ocupación y pedidos activos por mesa.
+4.  **📝 Monitor de Pedidos**: Listado global de todas las órdenes del día con filtros por estado.
+5.  **🍽️ Gestor de Carta**: CRUD completo de platos, categorías, modificadores y disponibilidad en tiempo real.
+6.  **👥 Administración de Staff**: Control de acceso y roles para meseros, cocineros y administradores.
+7.  **⚙️ Configuración del Local**: Gestión de horarios de atención, información del restaurante y generación masiva de códigos QR.
+
+---
+
+## 🏗️ Arquitectura del Proyecto
+
+El proyecto implementa **Clean Architecture** para garantizar escalabilidad, testeabilidad y desacoplamiento de la lógica de negocio frente a la interfaz de usuario:
+
+-   **`src/core` (Dominio)**: Contiene las entidades de negocio, definiciones de repositorios (interfaces) y los casos de uso principales. Es el corazón de la aplicación y no tiene dependencias externas.
+-   **`src/data` (Infraestructura)**: Implementación de repositorios, mapeadores de datos para la API y configuración del cliente HTTP/WebSocket.
+-   **`src/presentation` (UI)**: Capa de visualización que incluye:
+    -   **Components**: Componentes reutilizables siguiendo un diseño consistente.
+    -   **Pages**: Vistas principales de la aplicación.
+    -   **Hooks**: Lógica de estado y sincronización (ej. `useOrders`, `useSocket`).
+    -   **Context**: Proveedores de estado global como el contexto de autenticación y WebSockets.
+
+---
 
 ## 🚀 Tecnologías Utilizadas
 
-- **React 18**: Arquitectura basada en componentes y hooks personalizados.
-- **Vite**: Entorno de desarrollo y construcción de alto rendimiento.
-- **Framer Motion**: Micro-interacciones y transiciones fluidas.
-- **Lucide React**: Iconografía moderna y consistente.
-- **CSS Vanilla (Glassmorphism)**: Interfaz premium basada en transparencias y desenfoques.
-- **Clean Architecture**: Separación clara entre capas de dominio, casos de uso y presentación.
+-   **React 18**: Biblioteca base para la construcción de interfaces.
+-   **Vite**: Tooling de alto rendimiento para el desarrollo y bundling.
+-   **Socket.io-client**: Comunicación bidireccional en tiempo real para actualizaciones instantáneas de pedidos.
+-   **Framer Motion**: Motor de animaciones para transiciones fluidas y micro-interacciones premium.
+-   **Lucide React**: Set de iconos modernos y consistentes.
+-   **CSS Vanilla & Glassmorphism**: Sistema de diseño personalizado basado en transparencias, desenfoques y gradientes dinámicos.
 
-## 🛠️ Cómo Iniciar el Proyecto Localmente
+---
 
-Sigue estos pasos para levantar la web en tu entorno de desarrollo:
+## 🛠️ Configuración y Despliegue Local
 
-### 1. Clonar el repositorio
+### 1. Requisitos Previos
+- Node.js (v18 o superior)
+- npm o yarn
+
+### 2. Instalación
 ```bash
 git clone <url-del-repositorio>
 cd qhay-web
-```
-
-### 2. Instalar dependencias
-```bash
 npm install
 ```
 
-### 3. Configurar variables de entorno
-Crea un archivo `.env` en la raíz con:
+### 3. Variables de Entorno
+Crea un archivo `.env` en la raíz del proyecto:
 ```env
 VITE_API_URL=http://localhost:8080
+VITE_SOCKET_URL=http://localhost:8080
 ```
 
-### 4. Levantar el servidor
+### 4. Ejecución
 ```bash
+# Modo desarrollo
 npm run dev
+
+# Construcción para producción
+npm run build
 ```
-La aplicación estará disponible en: **[http://localhost:5173](http://localhost:5173)**
 
-## 📂 Estructura del Proyecto
-
-- `src/core`: Lógica de negocio (Entidades, Casos de Uso y Definición de Repositorios).
-- `src/data`: Implementación de Repositorios, Mapeadores y Cliente HTTP.
-- `src/presentation`: Componentes de UI, Páginas, Hooks y Estilos.
+La aplicación estará disponible por defecto en [http://localhost:5173](http://localhost:5173).
 
 ---
-Desarrollado con ❤️ para **QHay**.
+
+Desarrollado con pasión para transformar la industria gastronómica. 🚀
+**© 2024 QHay Team.**

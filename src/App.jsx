@@ -21,12 +21,32 @@ function App({ authRepository, restaurantRepository }) {
   const [publicRoute, setPublicRoute] = useState(null);
 
   useEffect(() => {
-    // Detect public QR route: /restaurants/:id?table=:num
     const parts = window.location.pathname.split('/');
+    
+    // 1. Detección de ruta de QR original: /restaurants/:id?table=:num
     if (parts.length === 3 && parts[1] === 'restaurants') {
       const restaurantId = parts[2];
       const tableNumber = new URLSearchParams(window.location.search).get('table');
+      
+      // Guardar contexto en sesión
+      sessionStorage.setItem('qhay_customer_context', JSON.stringify({ restaurantId, tableNumber }));
+      
+      // Cambiar URL visual a /customers de forma limpia
+      window.history.replaceState(null, '', '/customers');
       setPublicRoute({ restaurantId, tableNumber });
+    } 
+    // 2. Detección de recarga en la URL limpia: /customers
+    else if (parts.length === 2 && parts[1] === 'customers') {
+      try {
+        const savedCtx = sessionStorage.getItem('qhay_customer_context');
+        if (savedCtx) {
+          setPublicRoute(JSON.parse(savedCtx));
+        } else {
+          window.history.replaceState(null, '', '/');
+        }
+      } catch {
+        window.history.replaceState(null, '', '/');
+      }
     }
 
     try {

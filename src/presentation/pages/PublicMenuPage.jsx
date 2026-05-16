@@ -13,6 +13,8 @@ import {
   Beef,
   Salad,
   Plus,
+  Clock,
+  Receipt,
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import CustomerVerification from '../components/CustomerVerification';
@@ -26,6 +28,7 @@ import { resolveImageUrl } from '../../data/api/httpClient';
 import { isActiveOrder } from '../../core/entities/Order';
 import { formatCurrency } from '../utils/formatter';
 import ItemDetailModal from '../components/PublicMenu/ItemDetailModal';
+import OrderHistoryModal from '../components/PublicMenu/OrderHistoryModal';
 import CartDrawer from '../components/PublicMenu/CartDrawer';
 import ActiveOrdersPanel from '../components/PublicMenu/ActiveOrdersPanel';
 import CallWaiterButton from '../components/PublicMenu/CallWaiterButton';
@@ -70,7 +73,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
     refetch: refetchMenu,
   } = useMenu(menuRepository, restaurantId);
 
-  const { orders, tableOrders, submitting, submitOrder, requestBill, requestTableBill, refetch: refetchOrders } =
+  const { orders, tableOrders, submitting, submitOrder, requestBill, requestTableBill, refetch: refetchOrders, fetchTableOrders } =
     useCustomerOrders(orderRepository, customerId, restaurantId, tableNumber);
 
   const {
@@ -91,6 +94,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
   const [resLoading, setResLoading] = React.useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState('all');
   const [isOrdersPanelExpanded, setIsOrdersPanelExpanded] = useState(false);
@@ -386,6 +390,38 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
                   </div>
 
                   <button
+                    onClick={() => {
+                      setShowHistory(true);
+                      setShowUserMenu(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.8rem',
+                      padding: '0.8rem 0.5rem',
+                      borderRadius: '10px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'white',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontSize: '0.9rem',
+                      fontWeight: '800',
+                      width: '100%',
+                      transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = 'transparent')
+                    }
+                  >
+                    <Receipt size={18} />
+                    Historial de pedidos
+                  </button>
+
+                  <button
                     onClick={handleLogout}
                     style={{
                       display: 'flex',
@@ -577,6 +613,12 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
                           alt={item.name}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
+                        {item.prepTime > 0 && (
+                          <div className="floating-time-badge">
+                            <Clock size={14} strokeWidth={2.5} />
+                            {item.prepTime} <span>min</span>
+                          </div>
+                        )}
                         <div className="floating-price-badge">
                           ${formatCurrency(item.price)}
                         </div>
@@ -639,6 +681,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
           onRequestBill={requestBill}
           onRequestTableBill={requestTableBill}
           onExpandChange={setIsOrdersPanelExpanded}
+          onRefreshTableOrders={fetchTableOrders}
         />
       )}
 
@@ -659,6 +702,13 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
           billBarVisible={cart.length === 0 && activeOrders.length > 0}
         />
       )}
+
+      {/* ── Order History Modal ── */}
+      <OrderHistoryModal
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        customerId={customerId}
+      />
     </div>
   );
 };

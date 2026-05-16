@@ -112,14 +112,8 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, tab
     fetchTableOrders();
   }, [fetchOrders, fetchTableOrders]);
 
-  useEffect(() => {
-    if (orders.length === 0 && tableOrders.length === 0) return;
-    const timer = setInterval(() => {
-      fetchOrders();
-      fetchTableOrders();
-    }, pollInterval);
-    return () => clearInterval(timer);
-  }, [orders.length, tableOrders.length, fetchOrders, fetchTableOrders, pollInterval]);
+  // Polling eliminado: la actualización ahora se basa en eventos de WebSocket (ver PublicMenuPage.jsx)
+
 
   const submitOrder = useCallback(async (cart, tNumber) => {
     if (!customerId) throw new Error('Sesión expirada. Por favor identifícate de nuevo.');
@@ -174,5 +168,6 @@ export const useCustomerOrders = (orderRepository, customerId, restaurantId, tab
     requestBill,
     requestTableBill,
     refetch: refetchAll,
+    fetchTableOrders,
   };
 };

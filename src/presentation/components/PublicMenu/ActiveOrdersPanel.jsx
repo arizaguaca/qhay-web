@@ -272,6 +272,7 @@ const ActiveOrdersPanel = ({
   onRequestBill,
   onRequestTableBill,
   onExpandChange,
+  onRefreshTableOrders,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('mine');
@@ -520,7 +521,10 @@ const ActiveOrdersPanel = ({
               </button>
               <button
                 className={`orders-tab ${activeTab === 'table' ? 'orders-tab--active' : ''}`}
-                onClick={() => setActiveTab('table')}
+                onClick={() => {
+                  setActiveTab('table');
+                  onRefreshTableOrders?.();
+                }}
               >
                 <Users size={14} />
                 Mesa Completa

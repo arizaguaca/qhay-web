@@ -31,6 +31,25 @@ export const getOrdersByCustomer = async (orderRepository, customerId, restauran
 };
 
 /**
+ * getAllPaidOrdersByCustomer — Use case: fetches all paid orders made by a customer across all restaurants.
+ *
+ * @param {import('../repositories/IOrderRepository').IOrderRepository} orderRepository
+ * @param {string} customerId
+ * @returns {Promise<import('../entities/Order').Order[]>}
+ */
+export const getAllPaidOrdersByCustomer = async (orderRepository, customerId) => {
+  if (!customerId) throw new Error('Se requiere el ID del cliente.');
+  const all = await orderRepository.getByCustomer(customerId);
+  return all
+    .filter((o) => o.status === 'paid')
+    .sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+};
+
+/**
  * placeOrder — Use case: submits a new order from the public menu cart.
  *
  * @param {import('../repositories/IOrderRepository').IOrderRepository} orderRepository
