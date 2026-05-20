@@ -74,5 +74,25 @@ export const useMenu = (menuRepository, restaurantId) => {
     setItems((prev) => prev.filter((i) => i.id !== itemId));
   }, [menuRepository]);
 
-  return { items, categories, loading, saving, error, save, remove, saveCategory, refetch: fetchItems };
+  const toggleAvailability = useCallback(async (itemId, isAvailable) => {
+    // Optimistic UI update
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, isAvailable } : item
+      )
+    );
+    try {
+      await menuRepository.updateAvailability(itemId, isAvailable);
+    } catch (err) {
+      // Revert optimistic update on error
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, isAvailable: !isAvailable } : item
+        )
+      );
+      throw err;
+    }
+  }, [menuRepository]);
+
+  return { items, categories, loading, saving, error, save, remove, saveCategory, toggleAvailability, refetch: fetchItems };
 };

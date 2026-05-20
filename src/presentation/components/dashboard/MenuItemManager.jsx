@@ -15,7 +15,7 @@ import './MenuItemManager.css';
  * @param {{ restaurantId: string }} props
  */
 const MenuItemManager = ({ restaurantId }) => {
-  const { items, categories, loading, saving, save, remove, saveCategory } = useMenu(menuRepository, restaurantId);
+  const { items, categories, loading, saving, save, remove, saveCategory, toggleAvailability } = useMenu(menuRepository, restaurantId);
 
   const initialForm = {
     restaurant_id: restaurantId,
@@ -198,22 +198,7 @@ const MenuItemManager = ({ restaurantId }) => {
 
   const handleToggleAvailable = async (item) => {
     try {
-      const updatedItem = {
-        ...item,
-        price: item.price?.toString() ?? '',
-        prepTime: item.prepTime?.toString() ?? '0',
-        isAvailable: !item.isAvailable,
-        groups: (item.groups || []).map(g => ({
-          ...g,
-          title: g.title || g.name || '',
-          isRequired: Boolean(g.isRequired),
-          options: (g.options || []).map(o => ({
-            ...o,
-            extraPrice: parseFloat(o.extraPrice || 0)
-          }))
-        }))
-      };
-      await save(updatedItem);
+      await toggleAvailability(item.id, !item.isAvailable);
     } catch (err) {
       alert('Error al cambiar disponibilidad: ' + err.message);
     }

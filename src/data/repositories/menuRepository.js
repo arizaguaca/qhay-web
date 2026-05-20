@@ -56,6 +56,17 @@ export const menuRepository = {
     return mapMenuItem(await res.json());
   },
 
+  async updateAvailability(itemId, isAvailable) {
+    const res = await apiFetch(`/menus/${itemId}/availability`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isAvailable }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al actualizar disponibilidad.');
+    }
+  },
+
   async delete(itemId) {
     const res = await apiFetch(`/menus/${itemId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Error al eliminar el plato.');

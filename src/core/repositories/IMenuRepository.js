@@ -25,6 +25,7 @@ export const IMenuRepository = {
    * @returns {Promise<import('../entities/MenuItem').MenuItem>}
    */
   update: async (_itemId, _data) => { throw new Error('Not implemented'); },
+  updateAvailability: async (_itemId, _isAvailable) => { throw new Error('Not implemented'); },
 
   /**
    * Deletes a menu item.
