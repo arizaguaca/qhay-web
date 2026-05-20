@@ -148,23 +148,34 @@ const ItemDetailModal = ({ item, isOpen, onClose, onConfirm }) => {
               </button>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="modal-scroll-content no-scrollbar">
-              <div className="item-info-header">
-                <h2 className="item-title">{item.name}</h2>
+            {/* Title & Info Header (Non-scrollable overall) */}
+            <div className="item-info-header">
+              <h2 className="item-title">{item.name}</h2>
+              
+              {/* Scrollable Description Block */}
+              <div className="item-description-scroll custom-scrollbar">
                 <p className="item-description">
                   {item.description}
                 </p>
-                {item.prepTime > 0 && (
-                  <div className="prep-time-badge">
-                    <Clock size={16} strokeWidth={3} />
-                    Tiempo de preparación: {item.prepTime} min
-                  </div>
-                )}
               </div>
 
-              {/* Groups */}
-              {(item.groups || []).map(group => (
+              {item.prepTime > 0 && (
+                <div className="prep-time-badge">
+                  <Clock size={16} strokeWidth={3} />
+                  Tiempo de preparación: {item.prepTime} min
+                </div>
+              )}
+            </div>
+
+            {/* Options Section Container (Scrollable internally) */}
+            <div className="modal-options-container custom-scrollbar">
+              {[...(item.groups || [])]
+                .sort((a, b) => {
+                  if (a.isRequired && !b.isRequired) return -1;
+                  if (!a.isRequired && b.isRequired) return 1;
+                  return 0;
+                })
+                .map(group => (
                 <div key={group.id} className="group-container">
                   <div className="group-header">
                     <h4 className="group-title">
@@ -217,25 +228,32 @@ const ItemDetailModal = ({ item, isOpen, onClose, onConfirm }) => {
 
             {/* Sticky Action Footer */}
             <div className="modal-footer">
-              
-              {/* Quantity Selector */}
-              <div className="quantity-container">
+              {/* Error Message */}
+              {error && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="error-message">
+                  <AlertCircle size={18} />
+                  {error}
+                </motion.div>
+              )}
+
+              <div className="footer-actions-row">
+                {/* Quantity Selector */}
                 <div className="quantity-selector">
                   <motion.button 
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="quantity-btn"
                   >
-                    <Minus size={20} strokeWidth={2.5} />
+                    <Minus size={18} strokeWidth={2.5} />
                   </motion.button>
                   
                   <div className="quantity-display">
                     <AnimatePresence mode="wait">
                       <motion.span 
                         key={quantity}
-                        initial={{ y: 15, opacity: 0 }}
+                        initial={{ y: 12, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -15, opacity: 0 }}
+                        exit={{ y: -12, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         className="quantity-number"
                       >
@@ -249,39 +267,31 @@ const ItemDetailModal = ({ item, isOpen, onClose, onConfirm }) => {
                     onClick={() => setQuantity(quantity + 1)}
                     className="quantity-btn quantity-btn-plus"
                   >
-                    <Plus size={20} strokeWidth={2.5} />
+                    <Plus size={18} strokeWidth={2.5} />
                   </motion.button>
                 </div>
+
+                {/* Footer Button */}
+                <motion.button 
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleAdd}
+                  className={`add-button ${isSuccess ? 'add-button-success' : ''}`}
+                >
+                  {isSuccess ? (
+                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="success-content">
+                      <Check size={20} strokeWidth={3} />
+                      Agregado
+                    </motion.div>
+                  ) : (
+                    <>
+                      <span className="add-button-text">Agregar</span>
+                      <span className="modal-button-price">
+                        ${formatCurrency(calculateTotal())}
+                      </span>
+                    </>
+                  )}
+                </motion.button>
               </div>
-
-              {/* Error Message */}
-              {error && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="error-message">
-                  <AlertCircle size={18} />
-                  {error}
-                </motion.div>
-              )}
-
-              {/* Footer Button */}
-              <motion.button 
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAdd}
-                className={`add-button ${isSuccess ? 'add-button-success' : ''}`}
-              >
-                {isSuccess ? (
-                  <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="success-content">
-                    <Check size={24} strokeWidth={3} />
-                    Agregado
-                  </motion.div>
-                ) : (
-                  <>
-                    <span>Agregar al pedido</span>
-                    <span className="price-tag">
-                      ${formatCurrency(calculateTotal())}
-                    </span>
-                  </>
-                )}
-              </motion.button>
             </div>
           </motion.div>
         </div>

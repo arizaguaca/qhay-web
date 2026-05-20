@@ -6,6 +6,7 @@ import { menuRepository } from '../../../data/repositories/menuRepository';
 import { resolveImageUrl } from '../../../data/api/httpClient';
 import { processImage } from '../../utils/imageProcessor';
 import { formatCurrency } from '../../utils/formatter';
+import './MenuItemManager.css';
 
 /**
  * MenuItemManager — CRUD interface for restaurant menu items.
@@ -37,6 +38,8 @@ const MenuItemManager = ({ restaurantId }) => {
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [requiresPrep, setRequiresPrep] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleteConfirmItemName, setDeleteConfirmItemName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const fileInputRef = useRef(null);
 
@@ -177,9 +180,43 @@ const MenuItemManager = ({ restaurantId }) => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Seguro que deseas eliminar este plato?')) return;
-    await remove(id);
+  const handleDeleteClick = (item) => {
+    setDeleteConfirmId(item.id);
+    setDeleteConfirmItemName(item.name);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await remove(deleteConfirmId);
+      setDeleteConfirmId(null);
+      setDeleteConfirmItemName('');
+    } catch (err) {
+      alert('Error al eliminar el plato: ' + err.message);
+    }
+  };
+
+  const handleToggleAvailable = async (item) => {
+    try {
+      const updatedItem = {
+        ...item,
+        price: item.price?.toString() ?? '',
+        prepTime: item.prepTime?.toString() ?? '0',
+        isAvailable: !item.isAvailable,
+        groups: (item.groups || []).map(g => ({
+          ...g,
+          title: g.title || g.name || '',
+          isRequired: Boolean(g.isRequired),
+          options: (g.options || []).map(o => ({
+            ...o,
+            extraPrice: parseFloat(o.extraPrice || 0)
+          }))
+        }))
+      };
+      await save(updatedItem);
+    } catch (err) {
+      alert('Error al cambiar disponibilidad: ' + err.message);
+    }
   };
 
   // Group items by category
@@ -206,7 +243,7 @@ const MenuItemManager = ({ restaurantId }) => {
       <div className="menu-header">
         <div>
           <h3>Carta / Menú</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Gestiona los platos y precios de tu restaurante</p>
+          <p className="menu-header-text-muted">Gestiona los platos y precios de tu restaurante</p>
         </div>
         {!isAdding && (
           <button className="btn-primary" onClick={() => setIsAdding(true)}>
@@ -217,40 +254,18 @@ const MenuItemManager = ({ restaurantId }) => {
 
       {/* Categoría Filtros */}
       {!loading && usedCategories.length > 0 && !isAdding && (
-        <div className="category-filters" style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '1rem', marginTop: '1rem', scrollbarWidth: 'none' }}>
+        <div className="category-filters">
           <button 
-            className={`filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+            className={`filter-btn-pill ${selectedCategory === 'all' ? 'active' : ''}`}
             onClick={() => setSelectedCategory('all')}
-            style={{ 
-              padding: '0.5rem 1.25rem', 
-              borderRadius: '20px', 
-              border: '1px solid var(--border)', 
-              background: selectedCategory === 'all' ? 'var(--primary)' : 'transparent',
-              color: selectedCategory === 'all' ? 'white' : 'var(--text-muted)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.3s',
-              fontWeight: '500'
-            }}
           >
             Todos
           </button>
           {usedCategories.map(cat => (
             <button 
               key={cat.id}
-              className={`filter-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+              className={`filter-btn-pill ${selectedCategory === cat.id ? 'active' : ''}`}
               onClick={() => setSelectedCategory(cat.id)}
-              style={{ 
-                padding: '0.5rem 1.25rem', 
-                borderRadius: '20px', 
-                border: '1px solid var(--border)', 
-                background: selectedCategory === cat.id ? 'var(--primary)' : 'transparent',
-                color: selectedCategory === cat.id ? 'white' : 'var(--text-muted)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.3s',
-                fontWeight: '500'
-              }}
             >
               {cat.name}
             </button>
@@ -265,14 +280,13 @@ const MenuItemManager = ({ restaurantId }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="glass-card menu-form-card"
-            style={{ marginBottom: '2rem' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="menu-form-header">
+              <h4>
                 {editingId ? <Edit2 size={18} /> : <Plus size={18} />}
                 {editingId ? 'Editar Plato' : 'Nuevo Plato'}
               </h4>
-              <button onClick={resetForm} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <button onClick={resetForm} className="menu-form-close-btn">
                 <X size={20} />
               </button>
             </div>
@@ -281,7 +295,7 @@ const MenuItemManager = ({ restaurantId }) => {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Categoría</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div className="input-col-wrapper">
                     <div className="input-wrapper">
                       <AlignLeft className="input-icon" size={18} />
                       <select
@@ -326,7 +340,7 @@ const MenuItemManager = ({ restaurantId }) => {
                             <button 
                               type="button" 
                               onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
-                              style={{ position: 'absolute', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                              className="input-wrapper-inner-x"
                             >
                               <X size={16} />
                             </button>
@@ -346,8 +360,8 @@ const MenuItemManager = ({ restaurantId }) => {
                 </div>
               </div>
 
-              <div className="form-grid" style={{ marginTop: '1.25rem' }}>
-                <div className="form-group" style={{ margin: 0 }}>
+              <div className="form-grid">
+                <div className="form-group">
                   <label>Precio ($)</label>
                   <div className="input-wrapper">
                     <DollarSign className="input-icon" size={18} />
@@ -355,19 +369,18 @@ const MenuItemManager = ({ restaurantId }) => {
                   </div>
                 </div>
 
-                <div className="form-group" style={{ margin: 0 }}>
+                <div className="form-group">
                   <label>¿Requiere preparación?</label>
                   <div 
-                    className="input-wrapper" 
+                    className="input-wrapper requires-prep-switch-wrapper" 
                     onClick={() => setRequiresPrep(!requiresPrep)}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', height: '100%', minHeight: '48px', padding: '0 1rem' }}
                   >
                     <Clock className="input-icon" size={18} color={requiresPrep ? 'var(--primary)' : 'var(--text-muted)'} />
-                    <span style={{ marginLeft: '2.5rem', fontSize: '0.9rem', color: requiresPrep ? 'var(--text)' : 'var(--text-muted)' }}>
+                    <span className="requires-prep-label-span" style={{ color: requiresPrep ? 'var(--text)' : 'var(--text-muted)' }}>
                       {requiresPrep ? 'Sí, necesita tiempo' : 'No, entrega inmediata'}
                     </span>
-                    <div style={{ marginLeft: 'auto', width: '40px', height: '20px', borderRadius: '10px', background: requiresPrep ? 'var(--primary)' : 'rgba(255,255,255,0.1)', position: 'relative', transition: 'all 0.3s' }}>
-                      <div style={{ position: 'absolute', left: requiresPrep ? '22px' : '2px', top: '2px', width: '16px', height: '16px', borderRadius: '50%', background: 'white', transition: 'all 0.3s' }} />
+                    <div className={`requires-prep-toggle-track ${requiresPrep ? 'active' : 'inactive'}`}>
+                      <div className="requires-prep-toggle-knob" />
                     </div>
                   </div>
                 </div>
@@ -381,7 +394,7 @@ const MenuItemManager = ({ restaurantId }) => {
                     exit={{ opacity: 0, height: 0 }}
                     style={{ overflow: 'hidden' }}
                   >
-                    <div className="form-group" style={{ marginTop: '1.25rem' }}>
+                    <div className="form-group">
                       <label>Tiempo estimado (minutos)</label>
                       <div className="input-wrapper">
                         <Clock className="input-icon" size={18} />
@@ -398,87 +411,86 @@ const MenuItemManager = ({ restaurantId }) => {
                 )}
               </AnimatePresence>
 
-              <div className="form-group" style={{ marginTop: '1rem' }}>
+              <div className="form-group">
                 <label>Descripción</label>
-                <div className="input-wrapper">
+                <div className="input-wrapper textarea-prep-wrapper">
                   <AlignLeft className="input-icon" size={18} style={{ top: '1.1rem' }} />
-                  <textarea placeholder="Ingredientes, tamaño..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" style={{ paddingLeft: '3rem', paddingTop: '0.875rem' }} />
+                  <textarea placeholder="Ingredientes, tamaño..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" />
                 </div>
               </div>
 
               {/* Adiciones / Grupos */}
-              <div className="form-group" style={{ marginTop: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <label style={{ margin: 0, color: 'var(--primary)', fontWeight: '600' }}>Grupos de Adiciones / Opciones</label>
-                  <button type="button" onClick={handleAddGroup} className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', border: '1px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}>
+              <div className="form-group">
+                <div className="additions-header-wrapper">
+                  <label className="additions-header-label">Grupos de Adiciones / Opciones</label>
+                  <button type="button" onClick={handleAddGroup} className="btn-secondary additions-add-group-btn">
                     <Plus size={14} /> Añadir Grupo
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="additions-groups-flex">
                   {formData.groups.map((group, gIdx) => (
                     <motion.div
                       key={gIdx}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="glass-card"
-                      style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.1)' }}
+                      className="glass-card addition-group-glass-card"
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.2rem' }}>
+                      <div className="addition-group-header">
                         <div style={{ flex: 1 }}>
-                          <div className="form-group" style={{ margin: 0 }}>
+                          <div className="form-group">
                             <div className="input-wrapper">
                               <input
                                 type="text"
                                 placeholder="Título (ej: Salsa, Acompañamiento...)"
                                 value={group.title}
                                 onChange={(e) => handleGroupChange(gIdx, 'title', e.target.value)}
-                                style={{ paddingLeft: '1.2rem' }}
+                                className="addition-group-title-input"
                               />
                             </div>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}>
-                          <input type="checkbox" id={`req-${gIdx}`} checked={group.isRequired} onChange={(e) => handleGroupChange(gIdx, 'isRequired', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                          <label htmlFor={`req-${gIdx}`} style={{ margin: 0, fontSize: '0.85rem', cursor: 'pointer' }}>Obligatorio</label>
+                        <div className="addition-group-required-checkbox">
+                          <input type="checkbox" id={`req-${gIdx}`} checked={group.isRequired} onChange={(e) => handleGroupChange(gIdx, 'isRequired', e.target.checked)} />
+                          <label htmlFor={`req-${gIdx}`}>Obligatorio</label>
                         </div>
-                        <button type="button" onClick={() => handleRemoveGroup(gIdx)} style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)', border: 'none', borderRadius: '8px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => handleRemoveGroup(gIdx)} className="addition-group-remove-btn">
                           <Trash2 size={18} />
                         </button>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                      <div className="addition-group-minmax-grid">
                         <div className="form-group">
-                          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Mín. de selecciones</label>
+                          <label>Mín. de selecciones</label>
                           <div className="input-wrapper">
-                            <input type="number" min="0" value={group.minSelectable} onChange={(e) => handleGroupChange(gIdx, 'minSelectable', parseInt(e.target.value) || 0)} style={{ paddingLeft: '1.2rem' }} />
+                            <input type="number" min="0" value={group.minSelectable} onChange={(e) => handleGroupChange(gIdx, 'minSelectable', parseInt(e.target.value) || 0)} className="addition-group-title-input" />
                           </div>
                         </div>
                         <div className="form-group">
-                          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Máx. de selecciones</label>
+                          <label>Máx. de selecciones</label>
                           <div className="input-wrapper">
-                            <input type="number" min="0" value={group.maxSelectable} onChange={(e) => handleGroupChange(gIdx, 'maxSelectable', parseInt(e.target.value) || 1)} style={{ paddingLeft: '1.2rem' }} />
+                            <input type="number" min="0" value={group.maxSelectable} onChange={(e) => handleGroupChange(gIdx, 'maxSelectable', parseInt(e.target.value) || 1)} className="addition-group-title-input" />
                           </div>
                         </div>
                       </div>
 
                       <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.2rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.8rem', display: 'block' }}>Opciones del grupo</label>
+                        <label className="addition-group-options-title">Opciones del grupo</label>
                         {(group.options || []).map((opt, oIdx) => (
-                          <div key={oIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 40px', gap: '1rem', marginBottom: '1rem' }}>
+                          <div key={oIdx} className="addition-group-option-row">
                             <div className="input-wrapper">
-                              <input type="text" placeholder="Nombre de la opción" value={opt.name} onChange={(e) => handleOptionChange(gIdx, oIdx, 'name', e.target.value)} style={{ paddingLeft: '1.2rem', fontSize: '0.9rem' }} />
+                              <input type="text" placeholder="Nombre de la opción" value={opt.name} onChange={(e) => handleOptionChange(gIdx, oIdx, 'name', e.target.value)} />
                             </div>
                             <div className="input-wrapper">
                               <DollarSign className="input-icon" size={14} style={{ left: '0.8rem' }} />
-                              <input type="number" placeholder="Extra" value={opt.extraPrice} onChange={(e) => handleOptionChange(gIdx, oIdx, 'extraPrice', parseFloat(e.target.value) || 0)} style={{ paddingLeft: '2.2rem', fontSize: '0.9rem' }} />
+                              <input type="number" placeholder="Extra" value={opt.extraPrice} onChange={(e) => handleOptionChange(gIdx, oIdx, 'extraPrice', parseFloat(e.target.value) || 0)} className="addition-group-option-row-extra" />
                             </div>
-                            <button type="button" onClick={() => handleRemoveOption(gIdx, oIdx)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <button type="button" onClick={() => handleRemoveOption(gIdx, oIdx)} className="addition-group-option-remove-btn">
                               <X size={16} />
                             </button>
                           </div>
                         ))}
-                        <button type="button" onClick={() => handleAddOption(gIdx)} style={{ background: 'transparent', border: '1px dashed var(--primary)', borderRadius: '8px', color: 'var(--primary)', fontSize: '0.85rem', cursor: 'pointer', padding: '0.6rem', width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <button type="button" onClick={() => handleAddOption(gIdx)} className="addition-group-add-option-dashed-btn">
                           <Plus size={14} /> Añadir una opción a este grupo
                         </button>
                       </div>
@@ -487,60 +499,48 @@ const MenuItemManager = ({ restaurantId }) => {
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginTop: '1.5rem' }}>
+              <div className="form-group">
                 <label>Imagen del Plato</label>
-                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                <div className="item-image-selection-flex">
                   <div 
                     onClick={() => !isProcessingImage && fileInputRef.current.click()} 
-                    style={{ 
-                      width: '120px', 
-                      height: '100px', 
-                      borderRadius: '15px', 
-                      background: 'rgba(255,255,255,0.03)', 
-                      border: '2px dashed var(--border)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      cursor: isProcessingImage ? 'not-allowed' : 'pointer', 
-                      overflow: 'hidden',
-                      position: 'relative'
-                    }}
+                    className={`item-image-upload-dashed-box ${isProcessingImage ? 'not-clickable' : 'clickable'}`}
                   >
                     {previewUrl && !isProcessingImage ? (
-                      <img src={previewUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="preview" />
+                      <img src={previewUrl} alt="preview" />
                     ) : (
-                      <div style={{ textAlign: 'center' }}>
+                      <div className="item-image-upload-inner-text">
                         {isProcessingImage ? <Loader2 className="spin" size={24} color="var(--primary)" /> : <Camera size={24} color="var(--text-muted)" />}
-                        {isProcessingImage && <p style={{ fontSize: '0.7rem', marginTop: '0.4rem', color: 'var(--text-muted)' }}>Optimizando...</p>}
+                        {isProcessingImage && <p>Optimizando...</p>}
                       </div>
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Sube una foto atractiva (Max 2MB. Se comprimirá automáticamente)</p>
+                    <p className="item-image-instructions-text">Sube una foto atractiva (Max 2MB. Se comprimirá automáticamente)</p>
                     <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" hidden />
-                    <button type="button" className="btn-secondary" onClick={() => fileInputRef.current.click()} disabled={isProcessingImage} style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>
+                    <button type="button" className="btn-secondary item-image-select-btn" onClick={() => fileInputRef.current.click()} disabled={isProcessingImage}>
                       {isProcessingImage ? 'Procesando...' : 'Seleccionar Archivo'}
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div className="form-group" style={{ margin: '1.5rem 0' }}>
+              <div className="form-group">
                 <label>Disponibilidad</label>
-                <div className="input-wrapper" onClick={() => setFormData({ ...formData, isAvailable: !formData.isAvailable })} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', height: '48px', padding: '0 1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div className="item-availability-row-wrapper" onClick={() => setFormData({ ...formData, isAvailable: !formData.isAvailable })}>
                   {formData.isAvailable ? <Eye size={18} color="#4ade80" /> : <EyeOff size={18} color="#f87171" />}
-                  <span style={{ marginLeft: '0.75rem', fontWeight: '500', color: formData.isAvailable ? '#4ade80' : '#f87171' }}>
+                  <span className="item-availability-label" style={{ color: formData.isAvailable ? '#4ade80' : '#f87171' }}>
                     {formData.isAvailable ? 'Disponible en Carta' : 'Agotado Temporalmente'}
                   </span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }} disabled={saving || isProcessingImage}>
+              <div className="form-actions-flex">
+                <button type="submit" className="btn-primary form-actions-flex-btn-submit" disabled={saving || isProcessingImage}>
                   {saving ? <Loader2 className="spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
                   {saving ? 'Guardando...' : (editingId ? 'Actualizar' : 'Guardar Plato')}
                 </button>
-                <button type="button" className="btn-primary" onClick={resetForm} style={{ background: 'transparent', border: '1px solid var(--border)' }}>Cancelar</button>
+                <button type="button" className="btn-primary form-actions-flex-btn-cancel" onClick={resetForm}>Cancelar</button>
               </div>
             </form>
           </motion.div>
@@ -548,27 +548,18 @@ const MenuItemManager = ({ restaurantId }) => {
       </AnimatePresence>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem' }}>
+        <div className="menu-loading-container">
           <Loader2 className="spin" size={32} color="var(--primary)" />
-          <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Cargando carta...</p>
+          <p className="menu-loading-text">Cargando carta...</p>
         </div>
       ) : (
         <div className="menu-sections">
           {displayedGroupNames.map((catName) => (
-            <div key={catName} className="menu-category-section" style={{ marginBottom: '3rem' }}>
-              <h4 style={{ 
-                fontSize: '1.5rem', 
-                marginBottom: '1.5rem', 
-                color: 'var(--primary)', 
-                borderBottom: '2px solid rgba(var(--primary-rgb), 0.2)',
-                paddingBottom: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
+            <div key={catName} className="menu-category-section">
+              <h4 className="menu-category-title-header">
                 <Utensils size={24} />
                 {catName}
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: 'auto' }}>
+                <span className="menu-category-title-count">
                   {groupedItems[catName].length} platos
                 </span>
               </h4>
@@ -583,35 +574,78 @@ const MenuItemManager = ({ restaurantId }) => {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ delay: index * 0.05 }}
-                      className={`glass-card menu-item-card ${!item.isAvailable ? 'out-of-stock' : ''}`}
+                      className={`glass-card admin-item-card ${item.isAvailable ? 'is-available' : 'is-unavailable'}`}
                     >
-                      <div className="menu-item-image-container">
-                        <img src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=500'} alt={item.name} className="menu-item-img" />
-                        <span className="price-tag">${formatCurrency(item.price)}</span>
+                      {/* Image Area */}
+                      <div className="admin-item-image-container">
+                        <img 
+                          src={resolveImageUrl(item.imageUrl) || 'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=500'} 
+                          alt={item.name} 
+                          className="admin-item-img" 
+                        />
+                        
+                        {/* High contrast Price Badge aligned top-left */}
+                        <span className="admin-item-price-tag">
+                          ${formatCurrency(item.price)}
+                        </span>
+
+                        {/* Top-Right High Contrast Prep Time badge */}
+                        {item.prepTime > 0 && (
+                          <div className="admin-item-prep-badge">
+                            <Clock size={11} style={{ color: '#f97316' }} />
+                            <span>{item.prepTime} min</span>
+                          </div>
+                        )}
+
+                        {/* Red AGOTADO overlay when unavailable */}
                         {!item.isAvailable && (
-                          <div className="stock-overlay"><EyeOff size={24} /><span>AGOTADO</span></div>
+                          <div className="admin-item-out-of-stock-overlay">
+                            <EyeOff size={22} />
+                            <span className="admin-item-out-of-stock-badge">AGOTADO</span>
+                          </div>
                         )}
                       </div>
-                      <div style={{ padding: '1.25rem' }}>
-                        <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{item.name}</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem', minHeight: '2.5rem', lineHeight: '1.4' }}>{item.description}</p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.isAvailable ? '#4ade80' : '#f87171' }} />
-                              <span style={{ fontSize: '0.8rem', color: item.isAvailable ? '#4ade80' : '#f87171', fontWeight: '500' }}>
-                                {item.isAvailable ? 'Disponible' : 'No disponible'}
-                              </span>
-                            </div>
-                            {item.prepTime > 0 && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                                <Clock size={12} /><span>{item.prepTime} min</span>
-                              </div>
-                            )}
+
+                      {/* Content panel */}
+                      <div className="admin-item-content">
+                        {/* Title showing completely up to 2 lines, reserved min height for vertical alignment grid */}
+                        <h4 className="admin-item-title" title={item.name}>
+                          {item.name}
+                        </h4>
+
+                        <div className="admin-item-footer">
+                          {/* Modern Toggle Switch for instant stock control */}
+                          <div className="admin-item-stock-toggle">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAvailable(item)}
+                              className={`admin-toggle-switch ${item.isAvailable ? 'available' : 'unavailable'}`}
+                              title={item.isAvailable ? 'Marcar como Agotado' : 'Marcar como Disponible'}
+                            >
+                              <div className="admin-toggle-knob" />
+                            </button>
+                            {/* Word 'Disponible' colored in solid White */}
+                            <span className={`admin-stock-label ${item.isAvailable ? 'available' : 'unavailable'}`}>
+                              {item.isAvailable ? 'Disponible' : 'Agotado'}
+                            </span>
                           </div>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button onClick={() => handleEdit(item)} className="action-btn edit" title="Editar"><Edit2 size={16} /></button>
-                            <button onClick={() => handleDelete(item.id)} className="action-btn delete" title="Eliminar"><Trash2 size={16} /></button>
+
+                          {/* Action Buttons separated into individual high contrast black glass circles */}
+                          <div className="admin-actions-flex">
+                            <button 
+                              onClick={() => handleEdit(item)} 
+                              className="admin-action-btn-circle edit"
+                              title="Editar"
+                            >
+                              <Edit2 size={13} strokeWidth={2.2} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteClick(item)} 
+                              className="admin-action-btn-circle delete"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={13} strokeWidth={2.2} />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -623,13 +657,60 @@ const MenuItemManager = ({ restaurantId }) => {
           ))}
 
           {items.length === 0 && !loading && (
-            <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed var(--border)' }}>
-              <Utensils size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.3 }} />
-              <p style={{ color: 'var(--text-muted)' }}>No hay platos registrados en esta carta.</p>
+            <div className="menu-empty-state-container">
+              <Utensils size={48} className="menu-empty-state-icon" />
+              <p className="menu-empty-state-text">No hay platos registrados en esta carta.</p>
             </div>
           )}
         </div>
       )}
+
+      {/* Premium Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="admin-delete-modal-overlay"
+            onClick={() => { setDeleteConfirmId(null); setDeleteConfirmItemName(''); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="glass-card admin-delete-modal-card"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="admin-delete-modal-icon-container">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="admin-delete-modal-title">¿Eliminar Plato?</h3>
+              <p className="admin-delete-modal-description">
+                ¿Estás seguro de que deseas eliminar permanentemente este plato? Esta acción no se puede deshacer.
+                <span className="admin-delete-modal-item-name">"{deleteConfirmItemName}"</span>
+              </p>
+              <div className="admin-delete-modal-actions">
+                <button 
+                  type="button" 
+                  onClick={() => { setDeleteConfirmId(null); setDeleteConfirmItemName(''); }}
+                  className="admin-delete-modal-btn-cancel"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleConfirmDelete}
+                  className="admin-delete-modal-btn-confirm"
+                >
+                  Sí, Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
