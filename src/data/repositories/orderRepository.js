@@ -36,10 +36,10 @@ export const orderRepository = {
     return mapOrder(await res.json());
   },
 
-  async updateStatus(orderId, status) {
+  async updateStatus(orderId, status, userId = null) {
     const res = await apiFetch(`/orders/${orderId}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, userId }),
     });
     if (!res.ok) throw new Error('Error al actualizar el estado del pedido.');
   },

@@ -10,7 +10,7 @@ import { Clock, ChefHat, AlertCircle, CheckCircle2, PlayCircle, UtensilsCrossed 
  * KDSManager (Kitchen Display System) — Read-only + state action view for Cooks.
  * Prioritizes FIFO ordering, displays notes clearly, and tracks time elapsed.
  */
-const KDSManager = ({ restaurantId }) => {
+const KDSManager = ({ restaurantId, currentUser }) => {
   const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId, ['pending', 'preparing']);
   const { socket, notify, connect, disconnect } = useSocket();
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -201,7 +201,7 @@ const KDSManager = ({ restaurantId }) => {
                   <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     {order.status === 'pending' && (
                       <button
-                        onClick={() => changeStatus(order.id, 'preparing')}
+                        onClick={() => changeStatus(order.id, 'preparing', currentUser?.id)}
                         style={{
                           width: '100%', padding: '1rem', borderRadius: '12px',
                           background: '#3b82f6', color: 'white', fontWeight: '900', fontSize: '1.1rem',
@@ -215,7 +215,7 @@ const KDSManager = ({ restaurantId }) => {
 
                     {order.status === 'preparing' && (
                       <button
-                        onClick={() => changeStatus(order.id, 'ready')}
+                        onClick={() => changeStatus(order.id, 'ready', currentUser?.id)}
                         style={{
                           width: '100%', padding: '1rem', borderRadius: '12px',
                           background: '#10b981', color: 'white', fontWeight: '900', fontSize: '1.1rem',

@@ -67,8 +67,8 @@ export const useOrders = (orderRepository, restaurantId, statuses = null, pollIn
     });
   }, []);
 
-  const changeStatus = useCallback(async (orderId, status) => {
-    await updateOrderStatus(orderRepository, orderId, status);
+  const changeStatus = useCallback(async (orderId, status, userId = null) => {
+    await updateOrderStatus(orderRepository, orderId, status, userId);
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
     );

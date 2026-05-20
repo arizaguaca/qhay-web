@@ -99,12 +99,13 @@ export const placeOrder = (orderRepository, { restaurantId, customerId, tableNum
  * @param {import('../repositories/IOrderRepository').IOrderRepository} orderRepository
  * @param {string} orderId
  * @param {import('../entities/Order').OrderStatus} status
+ * @param {string|null} [userId] - ID of the user performing the change (for audit history)
  * @returns {Promise<void>}
  */
-export const updateOrderStatus = (orderRepository, orderId, status) => {
+export const updateOrderStatus = (orderRepository, orderId, status, userId = null) => {
   if (!orderId) throw new Error('Se requiere el ID de la orden.');
   if (!status) throw new Error('Se requiere el nuevo estado.');
-  return orderRepository.updateStatus(orderId, status);
+  return orderRepository.updateStatus(orderId, status, userId);
 };
 
 /**

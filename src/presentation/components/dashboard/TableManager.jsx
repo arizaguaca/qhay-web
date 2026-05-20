@@ -53,7 +53,7 @@ const TABLE_CONFIG = [
  * Supports dynamic shapes (round, square, long), service request alerts,
  * circular wait-time indicators, customer avatars, and Glassmorphism aesthetics.
  */
-const TableManager = ({ restaurantId }) => {
+const TableManager = ({ restaurantId, currentUser }) => {
   const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
   const { socket, notify } = useSocket();
   const [selectedTableNumber, setSelectedTableNumber] = useState(null);
@@ -213,7 +213,7 @@ const TableManager = ({ restaurantId }) => {
 
     if (!canDeliver) return;
 
-    await changeStatus(orderId, 'delivered');
+    await changeStatus(orderId, 'delivered', currentUser?.id);
 
     // Al usar currentSelectedTable (vinculado a tableData), el popup se refrescará solo.
     if (currentSelectedTable) {
@@ -224,7 +224,7 @@ const TableManager = ({ restaurantId }) => {
     }
   };
 
-  const handleMarkPaid = async (orderId) => { await changeStatus(orderId, 'paid'); setSelectedTableNumber(null); };
+  const handleMarkPaid = async (orderId) => { await changeStatus(orderId, 'paid', currentUser?.id); setSelectedTableNumber(null); };
   const handleResolveServiceRequest = async (requestId) => {
     try {
       await apiFetch(`/service-requests/${requestId}/status`, { method: 'PUT', body: JSON.stringify({ status: 'resolved' }) });

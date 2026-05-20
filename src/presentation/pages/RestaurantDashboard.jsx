@@ -106,10 +106,11 @@ const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'menu' && <MenuItemManager restaurantId={restaurant.id} />}
-            {activeTab === 'tables' && <TableManager restaurantId={restaurant.id} />}
-            {activeTab === 'orders' && <OrderManager restaurantId={restaurant.id} />}
-            {activeTab === 'kds' && <KDSManager restaurantId={restaurant.id} />}
-            {activeTab === 'caja' && <CashierManager restaurantId={restaurant.id} />}
+
+            {activeTab === 'tables' && <TableManager restaurantId={restaurant.id} currentUser={savedUser} />}
+            {activeTab === 'orders' && <OrderManager restaurantId={restaurant.id} currentUser={savedUser} />}
+            {activeTab === 'kds' && <KDSManager restaurantId={restaurant.id} currentUser={savedUser} />}
+            {activeTab === 'caja' && <CashierManager restaurantId={restaurant.id} currentUser={savedUser} />}
             {activeTab === 'reservations' && (
               <div className="glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
                 <Calendar size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.5 }} />

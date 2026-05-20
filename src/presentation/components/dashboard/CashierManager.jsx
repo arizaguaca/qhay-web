@@ -11,7 +11,7 @@ import { Wallet, Receipt, CheckCircle, Clock, Search, History, X, AlertCircle, U
  * CashierManager — specialized view for the Cashier role.
  * Focused on financial reconciliation, payment requests, pre-billing, and transaction history.
  */
-const CashierManager = ({ restaurantId }) => {
+const CashierManager = ({ restaurantId, currentUser }) => {
   const { orders, loading, changeStatus, refetch, addOrUpdateOrder } = useOrders(orderRepository, restaurantId);
   const { socket, notify, connect, disconnect } = useSocket();
   const [selectedTableNumber, setSelectedTableNumber] = useState(null);
@@ -103,7 +103,7 @@ const CashierManager = ({ restaurantId }) => {
   }, [selectedTableNumber, tableData]);
 
   const handleMarkPaid = async (orderId) => {
-    await changeStatus(orderId, 'paid');
+    await changeStatus(orderId, 'paid', currentUser?.id);
   };
 
   return (
