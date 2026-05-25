@@ -16,11 +16,11 @@
 .menu-header h3 {
   font-size: 1.5rem;
   font-weight: 800;
-  color: white;
+  color: #1c1917;
 }
 
 .menu-header p {
-  color: var(--text-muted);
+  color: #57534e;
   font-size: 0.9rem;
 }
 
@@ -41,9 +41,9 @@
 .filter-btn-pill {
   padding: 0.5rem 1.25rem;
   border-radius: 20px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
+  border: 1px solid transparent;
+  background: #f5efe9;
+  color: #57534e;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.3s;
@@ -51,9 +51,10 @@
 }
 
 .filter-btn-pill.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
+  background: #ffffff;
+  color: #1c1917;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 /* Form Styles & Grid styling */
@@ -69,8 +70,8 @@
 .menu-category-title-header {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  color: var(--primary);
-  border-bottom: 2px solid rgba(var(--primary-rgb), 0.2);
+  color: #1c1917;
+  border-bottom: 2px solid rgba(0,0,0,0.1);
   padding-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -99,6 +100,9 @@
   height: 100%;
   max-width: 100%;
   position: relative;
+  background: #1c1917 !important;
+  border: 1px solid rgba(255, 255, 255, 0.03) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;
   transition: all 0.3s ease;
 }
 
@@ -671,19 +675,19 @@
 .menu-empty-state-container {
   text-align: center;
   padding: 4rem;
-  background: rgba(255,255,255,0.02);
+  background: rgba(0,0,0,0.02);
   border-radius: 20px;
-  border: 1px dashed var(--border);
+  border: 1px dashed rgba(0,0,0,0.1);
 }
 
 .menu-empty-state-icon {
   margin-bottom: 1rem;
   opacity: 0.3;
-  color: var(--text-muted);
+  color: #57534e;
 }
 
 .menu-empty-state-text {
-  color: var(--text-muted);
+  color: #57534e;
 }
 
 /* Delete Confirmation Modal Overlay */

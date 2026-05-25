@@ -635,15 +635,16 @@ const ActiveOrdersPanel = ({
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="glass-card"
               style={{
                 width: '100%',
                 maxWidth: '400px',
                 position: 'relative',
                 padding: '2rem',
                 textAlign: 'center',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                background: '#ffffff',
+                borderRadius: '24px',
+                border: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
               }}
             >
               <div
@@ -653,13 +654,13 @@ const ActiveOrdersPanel = ({
                   borderRadius: '50%',
                   background: payingTable
                     ? 'rgba(99, 102, 241, 0.1)'
-                    : 'rgba(236, 72, 153, 0.1)',
+                    : 'rgba(255, 126, 51, 0.1)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 1.5rem',
-                  color: payingTable ? '#6366f1' : '#ec4899',
-                  border: `1px solid ${payingTable ? 'rgba(99,102,241,0.2)' : 'rgba(236,72,153,0.2)'}`,
+                  color: payingTable ? '#6366f1' : '#ff7e33',
+                  border: `1px solid ${payingTable ? 'rgba(99,102,241,0.2)' : 'rgba(255,126,51,0.2)'}`,
                 }}
               >
                 {payingTable ? <Users size={32} /> : <Wallet size={32} />}
@@ -669,7 +670,7 @@ const ActiveOrdersPanel = ({
                 style={{
                   fontSize: '1.5rem',
                   fontWeight: '900',
-                  color: 'white',
+                  color: '#1c1917',
                   marginBottom: '0.5rem',
                 }}
               >
@@ -677,17 +678,18 @@ const ActiveOrdersPanel = ({
               </h2>
               <p
                 style={{
-                  color: 'var(--text-muted)',
+                  color: '#57534e',
                   marginBottom: '2rem',
                   lineHeight: '1.5',
+                  fontSize: '0.95rem',
                 }}
               >
                 {payingTable ? (
                   <>
-                    Estás cubriendo el pago de <strong style={{ color: 'white' }}>todos los pedidos</strong> de la mesa por un total de
+                    Estás cubriendo el pago de <strong style={{ color: '#1c1917' }}>todos los pedidos</strong> de la mesa por un total de
                     <br />
                     <span
-                      style={{ color: '#6366f1', fontWeight: '900', fontSize: '1.4rem' }}
+                      style={{ color: '#4f46e5', fontWeight: '900', fontSize: '1.45rem', display: 'inline-block', marginTop: '0.5rem' }}
                     >
                       ${formatCurrency(modalTotal)}
                     </span>
@@ -697,7 +699,7 @@ const ActiveOrdersPanel = ({
                     Se notificará al personal para traer la cuenta por un total de
                     <br />
                     <span
-                      style={{ color: 'white', fontWeight: '900', fontSize: '1.4rem' }}
+                      style={{ color: '#ff7e33', fontWeight: '900', fontSize: '1.45rem', display: 'inline-block', marginTop: '0.5rem' }}
                     >
                       ${formatCurrency(modalTotal)}
                     </span>
@@ -712,11 +714,12 @@ const ActiveOrdersPanel = ({
                     flex: 1,
                     padding: '1rem',
                     borderRadius: '14px',
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'white',
+                    background: '#f5efe9',
+                    color: '#57534e',
                     fontWeight: '800',
-                    border: 'none',
+                    border: '1px solid rgba(0,0,0,0.05)',
                     cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   Cancelar
@@ -729,14 +732,15 @@ const ActiveOrdersPanel = ({
                     borderRadius: '14px',
                     background: payingTable
                       ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
-                      : 'var(--primary)',
+                      : 'linear-gradient(135deg, #ff7e33 0%, #e65c00 100%)',
                     color: 'white',
                     fontWeight: '800',
                     border: 'none',
                     cursor: 'pointer',
                     boxShadow: payingTable
-                      ? '0 10px 20px rgba(99, 102, 241, 0.3)'
-                      : '0 10px 20px rgba(var(--primary-rgb), 0.3)',
+                      ? '0 8px 16px rgba(99, 102, 241, 0.25)'
+                      : '0 8px 16px rgba(255, 126, 51, 0.25)',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   Confirmar

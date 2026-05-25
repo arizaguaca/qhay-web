@@ -8,30 +8,7 @@ import { apiFetch } from '../../../data/api/httpClient';
 import { formatCurrency } from '../../utils/formatter';
 import { Package, BellRing, Wallet, CheckCircle2, Clock, X, Check, Utensils, LayoutGrid, Users } from 'lucide-react';
 
-/* ─── SVG Circular Progress Ring ─── */
-const ProgressRing = ({ elapsed, maxMinutes = 45, size = 32 }) => {
-  const stroke = 3;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(elapsed / maxMinutes, 1);
-  const offset = circumference * (1 - progress);
-  const color = progress >= 0.8 ? '#ef4444' : progress >= 0.5 ? '#fbbf24' : '#10b981';
 
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
-        strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 1s ease, stroke 0.5s ease' }}
-      />
-      <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central" fill={color}
-        fontSize={size * 0.28} fontWeight="800" style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
-      >
-        {elapsed}
-      </text>
-    </svg>
-  );
-};
 
 /* ─── Table shape configs ─── */
 const TABLE_SHAPES = {
@@ -184,13 +161,13 @@ const TableManager = ({ restaurantId, currentUser }) => {
   const getTableColors = (status) => {
     switch (status) {
       case 'payment':
-        return { bg: 'rgba(16, 185, 129, 0.08)', border: '#10b981', text: '#10b981', label: 'Pago', icon: <Wallet size={15} /> };
+        return { bg: '#10b981', border: '#059669', text: 'white', label: 'Pago', icon: <Wallet size={15} /> };
       case 'assistance':
-        return { bg: 'rgba(6, 182, 212, 0.08)', border: '#06b6d4', text: '#06b6d4', label: 'Llamada', icon: <BellRing size={15} /> };
+        return { bg: '#E65F2B', border: '#C94A1B', text: 'white', label: 'Llamada', icon: <BellRing size={15} /> };
       case 'pending':
-        return { bg: 'rgba(249, 115, 22, 0.08)', border: '#f97316', text: '#f97316', label: 'Pedido', icon: <Utensils size={15} /> };
+        return { bg: '#1c1917', border: 'rgba(0,0,0,0.1)', text: '#a8a29e', label: 'Ocupada', icon: <Utensils size={15} /> };
       default:
-        return { bg: 'rgba(255, 255, 255, 0.02)', border: 'rgba(255, 255, 255, 0.06)', text: 'var(--text-muted)', label: 'Libre', icon: <CheckCircle2 size={15} /> };
+        return { bg: '#E3F2FD', border: 'rgba(0,0,0,0.05)', text: '#57534e', label: 'Libre', icon: <CheckCircle2 size={15} /> };
     }
   };
 
@@ -247,8 +224,8 @@ const TableManager = ({ restaurantId, currentUser }) => {
       50% { box-shadow: 0 0 20px #10b981, 0 0 40px rgba(16,185,129,0.5), inset 0 0 20px rgba(16,185,129,0.1); border-color: #34d399; }
     }
     @keyframes cyanPulse {
-      0%, 100% { box-shadow: 0 0 10px rgba(6,182,212,0.4), 0 0 25px rgba(6,182,212,0.2); }
-      50% { box-shadow: 0 0 25px rgba(6,182,212,0.7), 0 0 50px rgba(6,182,212,0.35); }
+      0%, 100% { box-shadow: 0 0 10px rgba(230,95,43,0.4), 0 0 25px rgba(230,95,43,0.2); }
+      50% { box-shadow: 0 0 25px rgba(230,95,43,0.7), 0 0 50px rgba(230,95,43,0.35); }
     }
   `;
 
@@ -259,10 +236,10 @@ const TableManager = ({ restaurantId, currentUser }) => {
       {/* Header */}
       <div className="menu-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
         <div>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#1c1917' }}>
             <LayoutGrid size={28} color="var(--primary)" /> Mapa de Mesas
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Vista en tiempo real del estado de cada mesa</p>
+          <p style={{ color: '#57534e', fontSize: '0.9rem' }}>Vista en tiempo real del estado de cada mesa</p>
         </div>
         <button className="btn-primary" onClick={() => { refetch(); fetchServiceRequests(); }} style={{ padding: '0.5rem 1rem' }}>
           <Clock size={18} /> Refrescar
@@ -276,17 +253,18 @@ const TableManager = ({ restaurantId, currentUser }) => {
             style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               padding: '0.6rem 1.2rem', borderRadius: '12px',
-              background: filter === fb.id ? 'rgba(var(--primary-rgb), 0.2)' : 'rgba(255,255,255,0.03)',
-              border: filter === fb.id ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
-              color: filter === fb.id ? 'var(--primary)' : 'var(--text-muted)',
+              background: filter === fb.id ? '#ffffff' : '#f5efe9',
+              border: '1px solid transparent',
+              color: filter === fb.id ? '#1c1917' : '#57534e',
+              boxShadow: filter === fb.id ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
               fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
-              transition: 'all 0.2s ease', backdropFilter: 'blur(8px)'
+              transition: 'all 0.2s ease'
             }}
           >
             {fb.icon} {fb.label}
             <span style={{
-              background: filter === fb.id ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
-              color: filter === fb.id ? 'white' : 'var(--text-muted)',
+              background: filter === fb.id ? 'var(--primary)' : 'rgba(0,0,0,0.05)',
+              color: filter === fb.id ? 'white' : '#57534e',
               padding: '0.1rem 0.5rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800'
             }}>{counts[fb.id]}</span>
           </button>
@@ -301,7 +279,7 @@ const TableManager = ({ restaurantId, currentUser }) => {
           <AnimatePresence>
             {filteredTables.map((table) => {
               const colors = getTableColors(table.status);
-              const shape = TABLE_SHAPES[table.type] || TABLE_SHAPES.square;
+              const shape = TABLE_SHAPES.round;
               const isOccupied = table.status !== 'idle';
               const elapsed = getElapsedMinutes(table.orders);
               const tableTotal = table.orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
@@ -324,7 +302,7 @@ const TableManager = ({ restaurantId, currentUser }) => {
                     ...shape,
                     background: colors.bg,
                     backdropFilter: 'blur(12px)',
-                    border: `1px solid ${isOccupied ? colors.border : 'rgba(255, 255, 255, 0.1)'}`,
+                    border: `1px solid ${isOccupied ? colors.border : 'rgba(0, 0, 0, 0.05)'}`,
                     padding: table.type === 'long' ? '1rem 1.5rem' : '1rem',
                     display: 'flex',
                     flexDirection: table.type === 'long' ? 'row' : 'column',
@@ -367,16 +345,9 @@ const TableManager = ({ restaurantId, currentUser }) => {
                     </div>
                   )}
 
-                  {/* Circular progress ring — bottom left */}
-                  {isOccupied && (
-                    <div style={{ position: 'absolute', bottom: table.type === 'round' ? '0.2rem' : '0.5rem', left: table.type === 'round' ? '0.2rem' : '0.5rem' }}>
-                      <ProgressRing elapsed={elapsed} />
-                    </div>
-                  )}
-
                   {/* Table content */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem', zIndex: 1 }}>
-                    <h2 style={{ fontSize: table.type === 'long' ? '1.6rem' : '2rem', fontWeight: '900', color: isOccupied ? 'white' : 'rgba(255,255,255,0.12)', margin: 0, lineHeight: 1 }}>
+                    <h2 style={{ fontSize: table.type === 'long' ? '1.6rem' : '2rem', fontWeight: '900', color: isOccupied ? 'white' : '#1c1917', margin: 0, lineHeight: 1 }}>
                       {table.tableNumber}
                     </h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: colors.text, fontWeight: '700', fontSize: '0.75rem' }}>
@@ -394,15 +365,16 @@ const TableManager = ({ restaurantId, currentUser }) => {
                     )}
                   </div>
 
-                  {/* Total — bottom right for long, or badge for others */}
-                  {isOccupied && (
+                  {/* Total — inside table */}
+                  {tableTotal > 0 && (
                     <div style={{
-                      ...(table.type === 'long'
-                        ? { fontSize: '1.1rem', fontWeight: '900', color: 'white' }
-                        : {
-                          position: 'absolute', bottom: table.type === 'round' ? '0.2rem' : '0.5rem', right: table.type === 'round' ? '0.2rem' : '0.5rem',
-                          background: 'rgba(0,0,0,0.5)', padding: '0.15rem 0.4rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', color: 'white'
-                        })
+                      background: 'rgba(0,0,0,0.5)',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      fontWeight: '800',
+                      color: 'white',
+                      marginTop: '0.2rem'
                     }}>
                       ${formatCurrency(tableTotal)}
                     </div>
@@ -423,19 +395,19 @@ const TableManager = ({ restaurantId, currentUser }) => {
               className="glass-card"
               style={{ width: '100%', maxWidth: '600px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}
             >
-              <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
+              <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: '#1c1917', cursor: 'pointer', transition: 'background 0.2s' }}>
                 <X size={20} />
               </button>
 
-              <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'white', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: '#1c1917', marginBottom: '1.5rem' }}>
                 Mesa {currentSelectedTable.tableNumber}
               </h2>
 
               {/* Service Request Alert Banner */}
               {currentSelectedTable.serviceRequest && (
-                <div style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid #06b6d4', borderRadius: '12px' }}>
+                <div style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', background: 'rgba(230,95,43,0.1)', border: '1px solid #E65F2B', borderRadius: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#22d3ee', fontWeight: '800' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#E65F2B', fontWeight: '800' }}>
                       <BellRing size={20} /> Solicitud de Asistencia
                     </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -446,9 +418,9 @@ const TableManager = ({ restaurantId, currentUser }) => {
                     onClick={() => handleResolveServiceRequest(currentSelectedTable.serviceRequest.id)}
                     style={{
                       width: '100%', padding: '0.8rem', borderRadius: '12px',
-                      background: '#06b6d4', color: 'white', fontWeight: '900', fontSize: '1rem',
+                      background: '#E65F2B', color: 'white', fontWeight: '900', fontSize: '1rem',
                       border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
-                      boxShadow: '0 4px 15px rgba(6, 182, 212, 0.4)'
+                      boxShadow: '0 4px 15px rgba(230, 95, 43, 0.4)'
                     }}
                   >
                     <Check size={18} strokeWidth={3} /> Finalizar Atención
@@ -458,7 +430,7 @@ const TableManager = ({ restaurantId, currentUser }) => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {currentSelectedTable.orders.filter(o => o.status !== 'delivered').map(order => (
-                  <div key={order.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '1.5rem' }}>
+                  <div key={order.id} style={{ background: '#1c1917', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 5px 15px rgba(0,0,0,0.08)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <span style={{ fontWeight: '800', color: 'var(--primary)' }}>Ticket #{String(order.id).slice(0, 5)}</span>
                       <span style={{

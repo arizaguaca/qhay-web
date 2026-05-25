@@ -62,10 +62,10 @@ const KDSManager = ({ restaurantId, currentUser }) => {
     <div className="kds-manager" style={{ padding: '1rem 0' }}>
       <div className="menu-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <div>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#1c1917' }}>
             <ChefHat size={28} color="var(--primary)" /> Kitchen Display System
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Vista FIFO para preparación de comandos</p>
+          <p style={{ color: '#57534e', fontSize: '0.9rem' }}>Vista FIFO para preparación de comandos</p>
         </div>
         <button className="btn-primary" onClick={refetch} style={{ padding: '0.5rem 1rem' }}>
           <Clock size={18} /> Sincronizar
@@ -74,17 +74,17 @@ const KDSManager = ({ restaurantId, currentUser }) => {
 
       {/* Daily Metrics Banner */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '150px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600' }}>Pendientes</span>
+        <div style={{ flex: 1, minWidth: '150px', background: '#1c1917', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+          <span style={{ color: '#a8a29e', fontSize: '0.9rem', fontWeight: '600' }}>Pendientes</span>
           <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white' }}>{orders.filter(o => o.status === 'pending' && (o.items || []).some(i => (i.prepTime || 0) > 0)).length}</span>
         </div>
         <div style={{ flex: 1, minWidth: '150px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ color: '#60a5fa', fontSize: '0.9rem', fontWeight: '600' }}>En Preparación</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#60a5fa' }}>{orders.filter(o => o.status === 'preparing' && (o.items || []).some(i => (i.prepTime || 0) > 0)).length}</span>
+          <span style={{ color: '#3b82f6', fontSize: '0.9rem', fontWeight: '600' }}>En Preparación</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#3b82f6' }}>{orders.filter(o => o.status === 'preparing' && (o.items || []).some(i => (i.prepTime || 0) > 0)).length}</span>
         </div>
         <div style={{ flex: 1, minWidth: '150px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ color: '#34d399', fontSize: '0.9rem', fontWeight: '600' }}>Listos</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#34d399' }}>{orders.filter(o => o.status === 'ready').length}</span>
+          <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: '600' }}>Listos</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#10b981' }}>{orders.filter(o => o.status === 'ready').length}</span>
         </div>
       </div>
 
@@ -93,10 +93,10 @@ const KDSManager = ({ restaurantId, currentUser }) => {
           <ChefHat className="spin" size={32} color="var(--primary)" />
         </div>
       ) : kitchenOrders.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '2px dashed rgba(255,255,255,0.1)' }}>
+        <div style={{ textAlign: 'center', padding: '5rem', background: 'rgba(0,0,0,0.02)', borderRadius: '20px', border: '2px dashed rgba(0,0,0,0.1)' }}>
           <CheckCircle2 size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
-          <h4>Sin comandas pendientes</h4>
-          <p style={{ color: 'var(--text-muted)' }}>La cocina está al día. ¡Buen trabajo!</p>
+          <h4 style={{ color: '#1c1917' }}>Sin comandas pendientes</h4>
+          <p style={{ color: '#57534e' }}>La cocina está al día. ¡Buen trabajo!</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
@@ -117,14 +117,13 @@ const KDSManager = ({ restaurantId, currentUser }) => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.3 }}
                   style={{
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    backdropFilter: 'blur(10px)',
-                    border: `2px solid ${isDelayed ? '#ef4444' : order.status === 'preparing' ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+                    background: '#1c1917',
+                    border: `2px solid ${isDelayed ? '#ef4444' : order.status === 'preparing' ? '#3b82f6' : 'rgba(255,255,255,0.03)'}`,
                     borderRadius: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
-                    boxShadow: isDelayed ? '0 8px 25px rgba(239, 68, 68, 0.2)' : '0 8px 25px rgba(0,0,0,0.3)'
+                    boxShadow: isDelayed ? '0 8px 25px rgba(239, 68, 68, 0.2)' : '0 10px 30px rgba(0,0,0,0.08)'
                   }}
                 >
                   {/* KDS Header */}
@@ -138,7 +137,7 @@ const KDSManager = ({ restaurantId, currentUser }) => {
                       <span style={{ fontSize: '1.2rem', fontWeight: '900', color: isDelayed ? 'white' : 'var(--primary)' }}>
                         Mesa {order.tableNumber || 'S/N'}
                       </span>
-                      <div style={{ fontSize: '0.8rem', color: isDelayed ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '0.8rem', color: isDelayed ? 'rgba(255,255,255,0.8)' : '#a8a29e' }}>
                         Ticket #{String(order.id).slice(0, 5)}
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 .menu-hero {
     height: 25vh;
     position: relative;
-    overflow: hidden;
+    z-index: 900;
 }
 
 .logout-btn {
@@ -27,6 +27,7 @@
     width: 100%;
     height: 100%;
     z-index: 1;
+    overflow: hidden;
 }
 
 .hero-bg-image {
@@ -455,23 +456,37 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(12px);
-    margin: 0 -1.5rem 2rem;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(252, 249, 246, 0.85);
+    backdrop-filter: blur(16px) saturate(120%);
+    margin: 0 -1.5rem 1.5rem;
+    padding: 0.8rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    /* Beautiful fading mask on the right to indicate more categories */
+    mask-image: linear-gradient(to right, black 82%, transparent 97%);
+    -webkit-mask-image: linear-gradient(to right, black 82%, transparent 97%);
 }
 
 .category-flex-wrapper {
     display: flex;
     gap: 0.8rem;
-    flex-wrap: wrap;
-    padding-bottom: 0.25rem;
+    flex-wrap: nowrap;
+    padding-bottom: 0.1rem;
+    width: max-content;
 }
 
 @media (min-width: 768px) {
+    .category-scroller-container {
+        mask-image: none;
+        -webkit-mask-image: none;
+        overflow-x: visible;
+    }
     .category-flex-wrapper {
         justify-content: center;
+        width: 100%;
+        flex-wrap: wrap;
     }
 }
 
@@ -488,28 +503,32 @@
     padding: 0.6rem 1.2rem;
     border-radius: 30px;
     white-space: nowrap;
-    color: var(--text-muted);
+    color: #57534e;
     font-weight: 700;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    background: #f5efe9;
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .category-pill.active {
-    color: white;
+    color: #1c1917;
     border-color: transparent;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
 .active-pill-bg {
     position: absolute;
     inset: 0;
-    background: var(--primary);
+    background: #ffffff;
     border-radius: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
     z-index: -1;
 }
 
@@ -520,8 +539,9 @@
     flex-direction: column;
     border-radius: 20px;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #1c1917;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -592,12 +612,13 @@
 }
 
 .item-card-desc {
-    color: var(--text-muted);
+    color: #a8a29e;
     font-size: 0.85rem;
     line-height: 1.5;
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
@@ -611,7 +632,7 @@
     height: 48px;
     aspect-ratio: 1 / 1;
     border-radius: 50%;
-    background: #000000; /* Deep black for maximum contrast */
+    background: #ff7e33;
     color: white;
     display: flex;
     align-items: center;
@@ -771,4 +792,76 @@
     align-items: center;
     justify-content: center;
     color: white;
+}
+
+/* Responsive Hero Header Content Rules */
+.hero-content-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 1.5rem;
+}
+
+.hero-left-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .menu-hero {
+        height: 130px;
+    }
+    
+    .hero-content {
+        padding: 0.5rem 1rem;
+    }
+    
+    .hero-content-flex {
+        gap: 1rem;
+    }
+    
+    .hero-left-group {
+        gap: 0.9rem;
+    }
+    
+    .restaurant-logo-container {
+        width: 76px;
+        height: 76px;
+        border-radius: 18px;
+        border-width: 2px;
+        flex-shrink: 0;
+    }
+    
+    .restaurant-title {
+        font-size: 1.6rem !important;
+        line-height: 1.2;
+    }
+    
+    .profile-btn-text {
+        display: none;
+    }
+    
+    .profile-btn-chevron {
+        margin-left: -0.2rem;
+    }
+    
+    .profile-btn-container {
+        padding: 0.4rem !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .restaurant-title {
+        font-size: 1.4rem !important;
+    }
+    .restaurant-logo-container {
+        width: 70px;
+        height: 70px;
+    }
+    .menu-hero {
+        height: 124px;
+    }
 }

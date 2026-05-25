@@ -207,20 +207,24 @@ const QRManager = ({ restaurantId, restaurantName }) => {
                 style={{ 
                   position: 'relative', 
                   textAlign: 'center',
+                  background: '#ffffff',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)',
                   opacity: isTableActive ? 1 : 0.6,
-                  filter: isTableActive ? 'none' : 'grayscale(1)'
+                  filter: isTableActive ? 'none' : 'grayscale(1)',
+                  padding: '1rem'
                 }}
               >
                 <div className="qr-image-container" style={{ 
-                  background: 'white', 
-                  padding: '1.25rem', 
+                  background: '#f5efe9', 
+                  padding: '0.8rem', 
                   borderRadius: '15px', 
                   marginBottom: '1.25rem', 
                   display: 'flex', 
                   justifyContent: 'center', 
                   alignItems: 'center', 
                   minHeight: '180px', 
-                  boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)',
+                  border: '1px solid rgba(0,0,0,0.05)',
                   position: 'relative'
                 }}>
                   {isTableActive ? (
@@ -229,7 +233,7 @@ const QRManager = ({ restaurantId, restaurantName }) => {
                       <img
                         src={`https://quickchart.io/qr?text=${encodeURIComponent(window.location.origin + qr.slugPath)}&size=300&margin=1`}
                         alt={`Mesa ${qr.tableNumber}`}
-                        style={{ width: '100%', height: 'auto', maxWidth: '140px' }}
+                        style={{ width: '100%', height: 'auto', maxWidth: '170px' }}
                         onLoad={(e) => {
                           e.target.style.opacity = 1;
                         }}
@@ -245,7 +249,7 @@ const QRManager = ({ restaurantId, restaurantName }) => {
                 
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-                    <h4 style={{ fontSize: '1.3rem', margin: 0 }}>Mesa {qr.tableNumber}</h4>
+                    <h4 style={{ fontSize: '1.3rem', margin: 0, color: '#1c1917' }}>Mesa {qr.tableNumber}</h4>
                     <div style={{ 
                       width: '8px', 
                       height: '8px', 
@@ -255,19 +259,19 @@ const QRManager = ({ restaurantId, restaurantName }) => {
                     }} />
                   </div>
                   {qr.label && (
-                    <span style={{ fontSize: '0.75rem', color: isTableActive ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <span style={{ fontSize: '0.75rem', color: isTableActive ? 'var(--primary)' : '#57534e', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {qr.label}
                     </span>
                   )}
                 </div>
-
+ 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {isTableActive ? (
                     <>
                       <button 
                         onClick={() => handlePrintIndividual(qr)}
                         className="btn-primary" 
-                        style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0.6rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white' }}
+                        style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0.6rem', background: '#f5efe9', border: '1px solid rgba(0,0,0,0.08)', color: '#57534e' }}
                         title="Imprimir"
                       >
                         <Printer size={18} />
@@ -285,7 +289,7 @@ const QRManager = ({ restaurantId, restaurantName }) => {
                       </a>
                     </>
                   ) : (
-                    <button className="btn-primary" disabled style={{ flex: 1, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                    <button className="btn-primary" disabled style={{ flex: 1, background: '#f5efe9', color: '#8b857f', border: '1px solid rgba(0,0,0,0.05)', cursor: 'not-allowed' }}>
                       Mesa Desactivada
                     </button>
                   )}

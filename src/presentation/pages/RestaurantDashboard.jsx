@@ -12,6 +12,7 @@ import KDSManager from '../components/dashboard/KDSManager';
 import CashierManager from '../components/dashboard/CashierManager';
 import { isStaff } from '../../core/entities/User';
 import { useSocket } from '../context/SocketContext';
+import { resolveImageUrl } from '../../data/api/httpClient';
 import './RestaurantDashboard.css';
 
 /**
@@ -70,8 +71,25 @@ const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
               <h1>Qhaay</h1>
             </div>
           </div>
-          <div className="restaurant-brand">
-            <h2>{restaurant.name}</h2>
+          <div className="restaurant-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', paddingTop: '0.75rem' }}>
+            {restaurant.logoUrl && (
+              <img
+                src={resolveImageUrl(restaurant.logoUrl)}
+                alt="logo"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  objectFit: 'cover',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  background: 'white',
+                  flexShrink: 0
+                }}
+              />
+            )}
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#1c1917', margin: 0 }}>
+              {restaurant.name}
+            </h2>
           </div>
         </div>
 
@@ -89,7 +107,7 @@ const RestaurantDashboard = ({ restaurant: initialRestaurant, onBack }) => {
         </div>
 
         <div className="sidebar-footer">
-          <p className="version-tag">Qhay v1.0</p>
+          <p className="version-tag">Qhaay v1.0</p>
         </div>
       </aside>
 

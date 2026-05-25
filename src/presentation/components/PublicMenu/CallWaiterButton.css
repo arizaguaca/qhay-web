@@ -18,15 +18,15 @@
   height: 52px;
   padding: 0 1.5rem;
   border-radius: 26px; /* Pill shape */
-  background: rgba(var(--primary-rgb), 0.85); /* Translúcido naranja */
-  backdrop-filter: blur(12px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(28, 25, 23, 0.75); /* Oscuro translúcido */
+  backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: white;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0.8rem;
-  box-shadow: 0 8px 30px rgba(var(--primary-rgb), 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), inset 0 0 12px rgba(255, 255, 255, 0.05);
   cursor: pointer;
   position: relative;
   outline: none;
@@ -48,4 +48,17 @@
 
 .btn-text {
   white-space: nowrap;
+}
+
+/* Responsive scaling for mobile: reduce size by ~70% */
+@media (max-width: 768px) {
+  .call-fab-pill {
+    height: 36px; /* 70% of 52px */
+    padding: 0 1rem; /* reduce horizontal padding */
+    font-size: 0.85rem; /* smaller text */
+    gap: 0.5rem;
+  }
+  .call-waiter-container {
+    bottom: 80px; /* adjust vertical position */
+  }
 }

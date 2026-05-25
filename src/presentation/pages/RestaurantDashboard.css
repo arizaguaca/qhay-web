@@ -10,7 +10,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .sidebar-header {
@@ -21,10 +21,10 @@
 .sidebar-back-btn {
   width: fit-content;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   padding: 0.5rem;
-  color: white;
+  color: #1c1917;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -45,6 +45,7 @@
   letter-spacing: -1px;
   background: linear-gradient(to right, #60a5fa, #a855f7);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
   line-height: 1;
@@ -60,13 +61,13 @@
 
 .restaurant-brand {
   padding-top: 1rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .restaurant-brand h2 {
   font-size: 1.2rem;
   font-weight: 700;
-  color: white;
+  color: #1c1917;
 }
 
 .dashboard-sidebar-nav {
@@ -104,7 +105,7 @@
 .sidebar-footer {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .version-tag {

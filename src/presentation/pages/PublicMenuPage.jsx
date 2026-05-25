@@ -244,218 +244,6 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="public-menu-container">
-      {/* ── Top navigation ── */}
-      <div
-        className="menu-top-nav"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '1rem 1.5rem',
-        }}
-      >
-        <div />
-
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.8rem',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              padding: '0.4rem 0.8rem',
-              borderRadius: '30px',
-              color: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold',
-                fontSize: '0.9rem',
-              }}
-            >
-              {(session.fullName || 'C').charAt(0).toUpperCase()}
-            </div>
-            <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>
-              {session.fullName || 'Cliente'}
-            </span>
-            <ChevronDown
-              size={16}
-              style={{
-                opacity: 0.5,
-                transform: showUserMenu ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.2s',
-              }}
-            />
-          </button>
-
-          <AnimatePresence>
-            {showUserMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="glass-card"
-                style={{
-                  position: 'absolute',
-                  top: '120%',
-                  right: 0,
-                  width: '250px',
-                  zIndex: 1000,
-                  padding: '1rem',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '0.5rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Identificado como
-                  </p>
-                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem' }}>
-                    {session.fullName || 'Cliente'}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {session.phone}
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '0.8rem 0.5rem',
-                      borderRadius: '10px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.8rem',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      <Bell
-                        size={18}
-                        color={notificationsEnabled ? 'var(--primary)' : 'var(--text-muted)'}
-                      />
-                      Notificaciones
-                    </div>
-                    <button
-                      onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-                      style={{
-                        width: '40px',
-                        height: '22px',
-                        borderRadius: '20px',
-                        background: notificationsEnabled
-                          ? 'var(--primary)'
-                          : 'rgba(255,255,255,0.1)',
-                        border: 'none',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '50%',
-                          background: 'white',
-                          position: 'absolute',
-                          top: '3px',
-                          left: notificationsEnabled ? '21px' : '3px',
-                          transition: 'all 0.2s',
-                        }}
-                      />
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setShowHistory(true);
-                      setShowUserMenu(false);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.8rem',
-                      padding: '0.8rem 0.5rem',
-                      borderRadius: '10px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'white',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontSize: '0.9rem',
-                      fontWeight: '800',
-                      width: '100%',
-                      transition: 'background 0.2s',
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = 'transparent')
-                    }
-                  >
-                    <Receipt size={18} />
-                    Historial de pedidos
-                  </button>
-
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.8rem',
-                      padding: '0.8rem 0.5rem',
-                      borderRadius: '10px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'white',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontSize: '0.9rem',
-                      fontWeight: '800',
-                      width: '100%',
-                      transition: 'background 0.2s',
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = 'transparent')
-                    }
-                  >
-                    <LogOut size={18} />
-                    Cerrar sesión
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
       {/* ── Restaurant hero ── */}
       <div className="menu-hero">
         <div className="hero-bg-wrapper">
@@ -469,54 +257,253 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
           />
         </div>
         <div className="hero-content">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div className="restaurant-logo-container">
-              <img
-                src={
-                  resolveImageUrl(restaurant.logoUrl) ||
-                  'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=200'
-                }
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                alt="logo"
-              />
+          <div className="hero-content-flex">
+            <div className="hero-left-group">
+              <div className="restaurant-logo-container">
+                <img
+                  src={
+                    resolveImageUrl(restaurant.logoUrl) ||
+                    'https://images.unsplash.com/photo-1495195129352-aed325a55b65?w=200'
+                  }
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  alt="logo"
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 className="restaurant-title" style={{ margin: 0 }}>
+                  {restaurant.name}
+                </h1>
+                {tableNumber && (
+                  <div
+                    className="table-badge"
+                    style={{
+                      marginTop: '0.4rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    <Utensils size={13} />
+                    <span>Mesa {tableNumber}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <h1
-                className="restaurant-title"
+
+            {/* Profile Dropdown inside Hero */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="profile-btn-container"
                 style={{
-                  fontSize: '2.5rem',
-                  margin: 0,
-                  WebkitTextFillColor: 'white',
-                  background: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  padding: '0.4rem 0.8rem',
+                  borderRadius: '30px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                {restaurant.name}
-              </h1>
-              {tableNumber && (
                 <div
-                  className="table-badge"
                   style={{
-                    marginTop: '0.5rem',
-                    display: 'inline-flex',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    background: 'var(--primary)',
+                    display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    color: 'white',
+                    flexShrink: 0,
                   }}
                 >
-                  <Utensils size={14} />
-                  <span>Mesa {tableNumber}</span>
+                  {(session.fullName || 'C').charAt(0).toUpperCase()}
                 </div>
-              )}
+                <span className="profile-btn-text" style={{ fontSize: '0.85rem', fontWeight: '600' }}>
+                  {session.fullName || 'Cliente'}
+                </span>
+                <span className="profile-btn-chevron" style={{ display: 'flex', alignItems: 'center' }}>
+                  <ChevronDown
+                    size={15}
+                    style={{
+                      opacity: 0.8,
+                      transform: showUserMenu ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.2s',
+                    }}
+                  />
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    style={{
+                      position: 'absolute',
+                      top: '120%',
+                      right: 0,
+                      width: '250px',
+                      zIndex: 1000,
+                      padding: '1rem',
+                      background: '#ffffff',
+                      borderRadius: '20px',
+                      boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
+                      border: '1px solid rgba(0,0,0,0.06)',
+                      color: '#1c1917',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '0.5rem',
+                        borderBottom: '1px solid rgba(0,0,0,0.05)',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        Identificado como
+                      </p>
+                      <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem', color: '#1c1917' }}>
+                        {session.fullName || 'Cliente'}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {session.phone}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.8rem 0.5rem',
+                          borderRadius: '10px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.8rem',
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          <Bell
+                            size={18}
+                            color={notificationsEnabled ? 'var(--primary)' : 'var(--text-muted)'}
+                          />
+                          Notificaciones
+                        </div>
+                        <button
+                          onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+                          style={{
+                            width: '40px',
+                            height: '22px',
+                            borderRadius: '20px',
+                            background: notificationsEnabled
+                              ? 'var(--primary)'
+                              : '#e5e7eb',
+                            border: 'none',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '50%',
+                              background: 'white',
+                              position: 'absolute',
+                              top: '3px',
+                              left: notificationsEnabled ? '21px' : '3px',
+                              transition: 'all 0.2s',
+                            }}
+                          />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setShowHistory(true);
+                          setShowUserMenu(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.8rem',
+                          padding: '0.8rem 0.5rem',
+                          borderRadius: '10px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#1c1917',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: '0.9rem',
+                          fontWeight: '800',
+                          width: '100%',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = 'transparent')
+                        }
+                      >
+                        <Receipt size={18} />
+                        Historial de pedidos
+                      </button>
+
+                      <button
+                        onClick={handleLogout}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.8rem',
+                          padding: '0.8rem 0.5rem',
+                          borderRadius: '10px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#e11d48',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: '0.9rem',
+                          fontWeight: '800',
+                          width: '100%',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = 'rgba(225, 29, 72, 0.08)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = 'transparent')
+                        }
+                      >
+                        <LogOut size={18} />
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Restaurant description ── */}
-      <div className="menu-sections-wrapper">
-        <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem' }}>
-          {restaurant.description}
-        </p>
-      </div>
+
 
       {/* ── Menu: categories + products ── */}
       <div style={{ padding: '0 1.5rem 8rem' }}>
@@ -578,7 +565,7 @@ const PublicMenuPage = ({ authRepository, restaurantId, tableNumber }) => {
                   style={{
                     fontSize: '1.25rem',
                     marginBottom: '1.5rem',
-                    color: 'white',
+                    color: '#1c1917',
                     fontWeight: '800',
                     display: 'flex',
                     alignItems: 'center',

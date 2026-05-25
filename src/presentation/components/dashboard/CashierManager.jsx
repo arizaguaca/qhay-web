@@ -83,11 +83,11 @@ const CashierManager = ({ restaurantId, currentUser }) => {
   const getTableStyle = (status) => {
     switch (status) {
       case 'esperando_cuenta':
-        return { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', color: '#10b981', text: 'Solicita Cuenta', alert: true };
+        return { bg: '#10b981', border: '#059669', color: 'white', text: 'Solicita Cuenta', alert: true };
       case 'ocupada':
-        return { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.5)', color: '#3b82f6', text: 'Ocupada', alert: false };
+        return { bg: '#1c1917', border: 'rgba(0,0,0,0.1)', color: '#a8a29e', text: 'Ocupada', alert: false };
       default:
-        return { bg: 'rgba(255, 255, 255, 0.02)', border: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)', text: 'Libre', alert: false };
+        return { bg: '#E3F2FD', border: 'rgba(0,0,0,0.05)', color: '#57534e', text: 'Libre', alert: false };
     }
   };
 
@@ -110,10 +110,10 @@ const CashierManager = ({ restaurantId, currentUser }) => {
     <div className="cashier-manager" style={{ padding: '1rem 0' }}>
       <div className="menu-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#1c1917' }}>
             <Wallet size={28} color="var(--primary)" /> Control de Caja
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Gestión de cobros y facturación de mesas</p>
+          <p style={{ color: '#57534e', fontSize: '0.9rem' }}>Gestión de cobros y facturación de mesas</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
@@ -174,7 +174,7 @@ const CashierManager = ({ restaurantId, currentUser }) => {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: hasOrders ? 'white' : 'var(--text-muted)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: hasOrders ? 'white' : '#1c1917', margin: 0 }}>
                     {table.tableNumber}
                   </h2>
                   <div style={{ fontSize: '0.8rem', color: style.color, fontWeight: '700', marginTop: '0.3rem' }}>
@@ -199,7 +199,7 @@ const CashierManager = ({ restaurantId, currentUser }) => {
               <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No hay transacciones recientes.</div>
             ) : (
               paidOrders.map(order => (
-                <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1c1917', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
                   <div>
                     <div style={{ fontWeight: '800', color: 'white' }}>Ticket #{String(order.id).slice(0, 5)} - Mesa {order.tableNumber}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -226,13 +226,13 @@ const CashierManager = ({ restaurantId, currentUser }) => {
               className="glass-card"
               style={{ width: '100%', maxWidth: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}
             >
-              <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: 'white', cursor: 'pointer' }}>
+              <button onClick={() => setSelectedTableNumber(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '50%', padding: '0.5rem', color: '#1c1917', cursor: 'pointer', transition: 'background 0.2s' }}>
                 <X size={20} />
               </button>
 
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'white' }}>Mesa {currentSelectedTable.tableNumber}</h2>
-                <p style={{ color: 'var(--text-muted)' }}>Pre-cuenta y Facturación</p>
+                <h2 style={{ fontSize: '2rem', fontWeight: '900', color: '#1c1917' }}>Mesa {currentSelectedTable.tableNumber}</h2>
+                <p style={{ color: '#57534e' }}>Pre-cuenta y Facturación</p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -266,10 +266,10 @@ const CashierManager = ({ restaurantId, currentUser }) => {
                       padding: '1.5rem',
                       boxShadow: customerGroup.hasRequestedBill ? '0 0 15px rgba(16, 185, 129, 0.1)' : 'none'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', paddingBottom: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', paddingBottom: '0.8rem', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                           <Users size={18} color="var(--primary)" />
-                          <span style={{ fontWeight: '900', color: 'white', fontSize: '1.1rem' }}>{customerGroup.customerName}</span>
+                          <span style={{ fontWeight: '900', color: '#1c1917', fontSize: '1.1rem' }}>{customerGroup.customerName}</span>
                         </div>
                         {customerGroup.hasRequestedBill && (
                           <span style={{ background: '#10b981', color: 'white', fontSize: '0.75rem', fontWeight: '800', padding: '0.3rem 0.6rem', borderRadius: '8px' }}>PAGO SOLICITADO</span>
@@ -278,10 +278,10 @@ const CashierManager = ({ restaurantId, currentUser }) => {
 
                       <div style={{ marginBottom: '1.5rem' }}>
                         {customerGroup.orders.map(order => (
-                          <div key={order.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ticket #{String(order.id).slice(0, 5)}</div>
+                          <div key={order.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#57534e', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ticket #{String(order.id).slice(0, 5)}</div>
                             {(order.items || []).map((item, i) => (
-                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', color: '#1c1917', fontSize: '0.9rem', marginBottom: '0.4rem' }}>
                                 <span>{item.quantity}x {item.menuItemName}</span>
                                 <span>${formatCurrency(item.unitPrice * item.quantity)}</span>
                               </div>
