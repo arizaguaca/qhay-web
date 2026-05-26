@@ -124,14 +124,18 @@ const CashierManager = ({ restaurantId, currentUser }) => {
             Mesas Activas
           </button>
           <button
-            className={`btn-primary ${activeTab !== 'history' ? 'outline' : ''}`}
+            className="btn-primary"
             onClick={() => setActiveTab('history')}
-            style={{ padding: '0.5rem 1rem', background: activeTab === 'history' ? 'var(--primary)' : 'transparent', border: '1px solid var(--primary)' }}
+            style={{ padding: '0.5rem 1rem', background: activeTab === 'history' ? 'var(--primary)' : 'transparent', color: activeTab === 'history' ? 'white' : 'var(--primary)', border: '1px solid var(--primary)' }}
           >
             <History size={18} /> Historial
           </button>
-          <button className="btn-primary" onClick={refetch} style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none' }}>
-            <Clock size={18} />
+            <button
+              className="btn-primary"
+              onClick={refetch}
+              style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none' }}
+            >
+              <Clock size={18} />
           </button>
         </div>
       </div>

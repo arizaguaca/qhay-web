@@ -126,7 +126,7 @@ const StaffManager = ({ restaurantId }) => {
                   {saving ? <Loader2 className="spin" size={18} /> : <Check size={18} />}
                   {saving ? 'Guardando...' : (editingId ? 'Actualizar Miembro' : 'Crear Acceso')}
                 </button>
-                <button type="button" className="btn-primary" onClick={resetForm} style={{ background: 'transparent', border: '1px solid var(--border)' }}>Cancelar</button>
+                <button type="button" className="btn-primary" onClick={resetForm} style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)', color: 'var(--text-main)' }}>Cancelar</button>
               </div>
             </form>
           </motion.div>
