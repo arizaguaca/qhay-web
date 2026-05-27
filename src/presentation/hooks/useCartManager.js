@@ -36,6 +36,7 @@ export const useCartManager = () => {
   }, [cart.length]);
 
   const addToCart = useCallback((itemWithSelections) => {
+    setIsCartExpanded(true);
     setCart((prev) => {
       const optionsKey = (itemWithSelections.selectedOptions || [])
         .map(o => o.optionId)
