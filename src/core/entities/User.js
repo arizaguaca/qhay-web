@@ -4,7 +4,7 @@
  * @property {string} name
  * @property {string} email
  * @property {string} [phone]
- * @property {'owner' | 'admin' | 'editor' | 'waiter' | 'cook' | 'cashier'} role
+ * @property {'owner' | 'admin' | 'manager' | 'waiter' | 'cook' | 'cashier' | 'customer'} role
  * @property {boolean} isVerified
  * @property {string} [restaurantId]
  */
@@ -12,29 +12,37 @@
 /**
  * Creates a normalized User entity from raw data.
  * Handles both camelCase and GORM uppercase ID fields.
+ * Also handles the customer verify-code response shape: { entityId, entityType, role }
  * @param {Object} raw
  * @returns {User}
  */
 export const createUser = (raw) => ({
-  id: raw.id ?? raw.ID ?? '',
+  id: raw.id ?? raw.ID ?? raw.entityId ?? '',
   name: raw.fullName ?? raw.full_name ?? raw.name ?? '',
   email: raw.email ?? '',
-  phone: raw.phone ?? '',
+  phone: raw.phone ?? raw.contact ?? '',
   role: raw.role ?? 'owner',
-  isVerified: raw.isVerified ?? raw.is_verified ?? false,
+  isVerified: raw.isVerified ?? raw.is_verified ?? true,
   restaurantId: raw.restaurantId ?? raw.restaurant_id ?? raw.RestaurantID ?? null,
 });
 
-/**
- * Returns true if the user is a restaurant owner.
- * @param {User} user
- * @returns {boolean}
- */
-export const isOwner = (user) => user.role === 'owner';
+// ─── Role Helpers ─────────────────────────────────────────────────────────────
 
-/**
- * Returns true if the user is staff (not an owner).
- * @param {User} user
- * @returns {boolean}
- */
-export const isStaff = (user) => user.role !== 'owner';
+/** owner | admin — gestión total del sistema */
+export const isAdmin = (user) => user?.role === 'owner' || user?.role === 'admin';
+
+/** owner | admin | manager — gestión del restaurante */
+export const isManager = (user) => ['owner', 'admin', 'manager'].includes(user?.role);
+
+/** Cualquier rol de staff (no customer) */
+export const isStaff = (user) => user?.role !== 'customer' && !!user?.role;
+
+/** customer — accede al menú y pedidos vía QR */
+export const isCustomer = (user) => user?.role === 'customer';
+
+/** owner | admin | manager | waiter — puede crear/ver pedidos */
+export const canAccessOrders = (user) => ['owner', 'admin', 'manager', 'waiter', 'customer'].includes(user?.role);
+
+/** Alias backward-compat */
+export const isOwner = (user) => user?.role === 'owner';
+

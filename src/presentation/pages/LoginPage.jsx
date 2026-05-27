@@ -1,17 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, LogIn, AlertCircle } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import './LoginPage.css';
 
 /**
  * LoginPage — Handles user authentication form.
- * All API logic is delegated to the useAuth hook.
+ * All API logic is delegated to the AuthContext (single source of truth).
  *
  * @param {{ authRepository: Object, onLoginSuccess: Function, onSwitchToRegister: Function }} props
  */
-const LoginPage = ({ authRepository, onLoginSuccess, onSwitchToRegister }) => {
-  const { login, status, error } = useAuth(authRepository);
+const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
+  const { login, isLoading, error } = useAuthContext();
   const [formData, setFormData] = React.useState({ email: '', password: '' });
 
   const handleChange = (e) => {
@@ -22,14 +22,13 @@ const LoginPage = ({ authRepository, onLoginSuccess, onSwitchToRegister }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const user = await login(formData);
-      onLoginSuccess(user);
+      await login(formData);
+      onLoginSuccess(); // El AuthContext ya actualizó el estado
     } catch {
-      // error already set in hook
+      // error already set in context
     }
   };
 
-  const isLoading = status === 'loading';
 
   return (
     <div className="login-container">
@@ -87,7 +86,7 @@ const LoginPage = ({ authRepository, onLoginSuccess, onSwitchToRegister }) => {
             {isLoading ? 'Iniciando sesión...' : <><span>Entrar</span> <ArrowRight size={18} /></>}
           </motion.button>
 
-          {status === 'error' && (
+          {!!error && (
             <div className="alert alert-error">
               <AlertCircle size={18} />
               <span>{error}</span>

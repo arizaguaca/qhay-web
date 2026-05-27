@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
-import { loginUser, registerUser, verifyUser } from '../../core/use-cases/auth.use-cases';
+import { loginUser, logoutUser, registerUser, verifyUser, verifyCustomerCode } from '../../core/use-cases/auth.use-cases';
 
 const SESSION_KEY = 'qhay_user';
 
 /**
- * useAuth — Manages admin user authentication state.
- * Persists session to localStorage.
+ * useAuth — Manages admin/staff user authentication state.
+ * Persists session to localStorage. Cookie is managed by the browser automatically.
  *
  * @param {import('../../core/repositories/IAuthRepository').IAuthRepository} authRepository
  */
@@ -18,7 +18,7 @@ export const useAuth = (authRepository) => {
       return null;
     }
   });
-  const [status, setStatus] = useState('idle'); // idle | loading | error
+  const [status, setStatus] = useState('idle'); // idle | loading | error | success | verified
   const [error, setError] = useState('');
 
   const login = useCallback(async (credentials) => {
@@ -63,11 +63,37 @@ export const useAuth = (authRepository) => {
     }
   }, [authRepository]);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(SESSION_KEY);
-    setUser(null);
-    setStatus('idle');
-  }, []);
+  const verifyCode = useCallback(async (contact, code) => {
+    setStatus('loading');
+    setError('');
+    try {
+      const customerData = await verifyCustomerCode(authRepository, contact, code);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(customerData));
+      setUser(customerData);
+      setStatus('idle');
+      return customerData;
+    } catch (err) {
+      setError(err.message);
+      setStatus('error');
+      throw err;
+    }
+  }, [authRepository]);
 
-  return { user, status, error, login, register, verify, logout };
+  const logout = useCallback(async () => {
+    setStatus('loading');
+    try {
+      // Invalida la cookie HttpOnly en el servidor
+      await logoutUser(authRepository);
+    } catch (err) {
+      console.warn('[useAuth] logout backend error (ignoring):', err.message);
+    } finally {
+      // Siempre limpiar la sesión local, independientemente del resultado del servidor
+      localStorage.removeItem(SESSION_KEY);
+      setUser(null);
+      setStatus('idle');
+    }
+  }, [authRepository]);
+
+  return { user, status, error, login, register, verify, verifyCode, logout };
 };
+

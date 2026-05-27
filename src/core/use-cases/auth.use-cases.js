@@ -1,5 +1,5 @@
 /**
- * loginUser — Use case: authenticates a user and persists session.
+ * loginUser — Use case: authenticates a staff/owner user and persists session.
  *
  * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
  * @param {{ email: string, password: string }} credentials
@@ -13,6 +13,16 @@ export const loginUser = async (authRepository, credentials) => {
   }
 
   return authRepository.login(email, password);
+};
+
+/**
+ * logoutUser — Use case: ends the user session, invalidating the server-side cookie.
+ *
+ * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
+ * @returns {Promise<void>}
+ */
+export const logoutUser = async (authRepository) => {
+  return authRepository.logout();
 };
 
 /**
@@ -33,7 +43,22 @@ export const registerUser = async (authRepository, data) => {
 };
 
 /**
- * verifyUser — Use case: verifies a user account with OTP.
+ * verifyCustomerCode — Use case: verifies a customer OTP and establishes their session.
+ *
+ * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
+ * @param {string} contact - Phone number of the customer
+ * @param {string} code - OTP code received via SMS/WhatsApp
+ * @returns {Promise<import('../entities/Customer').Customer>}
+ */
+export const verifyCustomerCode = async (authRepository, contact, code) => {
+  if (!contact || !code) {
+    throw new Error('El teléfono y el código son obligatorios.');
+  }
+  return authRepository.verifyCode(contact, code);
+};
+
+/**
+ * verifyUser — Use case: verifies a user account with OTP (staff registration flow).
  *
  * @param {import('../repositories/IAuthRepository').IAuthRepository} authRepository
  * @param {string} email
@@ -46,3 +71,4 @@ export const verifyUser = async (authRepository, email, code) => {
   }
   return authRepository.verifyCode(email, code);
 };
+
