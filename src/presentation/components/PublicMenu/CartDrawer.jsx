@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Plus, Minus, Loader, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Loader, CheckCircle2, ChevronUp } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatter';
 
 /**
@@ -48,28 +48,48 @@ const CartDrawer = ({
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="floating-cart-panel"
       >
-        <div
+        <motion.div
           className="cart-handle-area"
           onClick={onToggle}
           style={{ cursor: 'pointer', paddingBottom: '0.5rem' }}
+          whileTap={{ scale: 0.98 }}
         >
           <div className="cart-handle" />
-          {!isExpanded && (
-            <div
-              style={{
-                textAlign: 'center',
-                fontSize: '0.8rem',
-                color: 'var(--text-muted)',
-                fontWeight: '700',
-                marginTop: '-4px',
-              }}
+          <motion.div
+            animate={{
+              y: [0, -3, 0],
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 2.2,
+              ease: 'easeInOut',
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              fontSize: '0.8rem',
+              color: 'var(--text-muted)',
+              fontWeight: '700',
+              marginTop: '-4px',
+              userSelect: 'none',
+            }}
+          >
+            <span>
+              {isExpanded ? 'Toca para ocultar el pedido' : 'Toca para ver tu pedido'}
+            </span>
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+              style={{ display: 'flex', alignItems: 'center' }}
             >
-              Toca para ver tu pedido
-            </div>
-          )}
-        </div>
+              <ChevronUp size={14} color="var(--text-muted)" style={{ marginTop: '1px' }} />
+            </motion.div>
+          </motion.div>
+        </motion.div>
 
-        <div className="cart-items-list no-scrollbar">
+        <div className="cart-items-list">
           <AnimatePresence mode="popLayout">
             {cart.map((item) => {
               const itemKey = item.optionsKey ? `${item.id}-${item.optionsKey}` : item.id;
@@ -77,7 +97,6 @@ const CartDrawer = ({
                 (sum, opt) => sum + (opt.extraPrice || 0),
                 0
               );
-
               return (
                 <motion.div
                   key={itemKey}
@@ -86,38 +105,40 @@ const CartDrawer = ({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="cart-item-row"
+                  style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.8rem 0' }}
                 >
-                  <div className="cart-item-info">
-                    <div className="cart-item-name">{item.name}</div>
-                    {item.selectedOptions?.length > 0 && (
-                      <div className="cart-item-modifiers">
-                        {item.selectedOptions.map((opt) => opt.name).join(', ')}
-                      </div>
-                    )}
-                    <textarea
-                      placeholder="Nota: ej. sin cebolla..."
-                      className="cart-note-textarea no-scrollbar"
-                      value={itemNotes[item.id] || ''}
-                      onChange={(e) => onNotesChange(item.id, e.target.value)}
-                      onFocus={() => { if (!isExpanded) onToggle(); }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '0.8rem',
-                    }}
-                  >
-                    <span style={{ fontWeight: '800', color: 'var(--primary)' }}>
+                  {/* Top Part: Title + Modifiers on left, Price on right */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', gap: '1rem' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="cart-item-name">{item.name}</div>
+                      {item.selectedOptions?.length > 0 && (
+                        <div className="cart-item-modifiers" style={{ margin: 0 }}>
+                          {item.selectedOptions.map((opt) => opt.name).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '1rem', flexShrink: 0 }}>
                       ${formatCurrency((item.price + modsPrice) * item.quantity)}
                     </span>
+                  </div>
 
+                  {/* Bottom Part: Note Input on left, Qty Control on right */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '1rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <input
+                        type="text"
+                        placeholder="Nota: ej. sin cebolla..."
+                        className="cart-note-input"
+                        style={{ marginTop: 0 }}
+                        value={itemNotes[item.id] || ''}
+                        onChange={(e) => onNotesChange(item.id, e.target.value)}
+                        onFocus={() => { if (!isExpanded) onToggle(); }}
+                        maxLength={100}
+                      />
+                    </div>
                     <div
                       className="qty-control"
-                      style={{ margin: 0, padding: '0.4rem', gap: '1rem' }}
+                      style={{ margin: 0, padding: '0.2rem 0.3rem', gap: '0.6rem', flexShrink: 0, height: '28px' }}
                     >
                       <motion.button
                         whileTap={{ scale: 0.85 }}
@@ -125,7 +146,7 @@ const CartDrawer = ({
                         className="qty-btn"
                         style={{ background: 'rgba(255,255,255,0.1)' }}
                       >
-                        <Minus size={16} />
+                        <Minus size={12} />
                       </motion.button>
 
                       <div className="counter-wrapper">
@@ -148,7 +169,7 @@ const CartDrawer = ({
                         className="qty-btn"
                         style={{ background: 'var(--primary)' }}
                       >
-                        <Plus size={16} />
+                        <Plus size={12} />
                       </motion.button>
                     </div>
                   </div>
@@ -158,60 +179,83 @@ const CartDrawer = ({
           </AnimatePresence>
         </div>
 
-        <div className="cart-footer">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div className={`cart-icon-circle ${cartPulsing ? 'cart-pulse-animation' : ''}`}>
-                <ShoppingBag size={24} color="black" />
-                <div className="cart-qty-badge">{totalItems}</div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: '0.8rem',
-                    color: 'var(--text-muted)',
-                    fontWeight: '700',
-                  }}
-                >
-                  TOTAL ESTIMADO
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white' }}>
-                  ${formatCurrency(cartTotal)}
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="cart-footer" style={{ padding: '0.8rem 1.2rem' }}>
           <button
             onClick={onPlaceOrder}
             disabled={submitting}
             className="btn-primary"
             style={{
               width: '100%',
-              height: '56px',
-              borderRadius: '18px',
-              fontSize: '1.1rem',
-              fontWeight: '900',
-              boxShadow: '0 10px 25px rgba(var(--primary-rgb), 0.4)',
+              height: '52px',
+              borderRadius: '16px',
+              boxShadow: '0 8px 25px rgba(var(--primary-rgb), 0.35)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.8rem',
+              justifyContent: 'space-between',
+              padding: '0 1.2rem',
             }}
           >
             {submitting ? (
-              <Loader size={22} className="spin" />
+              <div style={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+                <Loader size={20} className="spin" />
+              </div>
             ) : (
               <>
-                <CheckCircle2 size={22} />
-                Pedir Ahora
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    className={`cart-icon-circle-mini ${cartPulsing ? 'cart-pulse-animation' : ''}`}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      background: 'rgba(0, 0, 0, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                    }}
+                  >
+                    <ShoppingBag size={16} color="black" />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-5px',
+                        right: '-5px',
+                        minWidth: '18px',
+                        height: '18px',
+                        fontSize: '0.65rem',
+                        padding: '0 4px',
+                        background: 'white',
+                        color: 'black',
+                        fontWeight: '900',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                      }}
+                    >
+                      {totalItems}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '1rem', fontWeight: '900', color: 'black', letterSpacing: '0.5px' }}>
+                  Pedir Ahora
+                </div>
+
+                <div
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: '900',
+                    color: 'black',
+                    background: 'rgba(0, 0, 0, 0.12)',
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '8px',
+                  }}
+                >
+                  ${formatCurrency(cartTotal)}
+                </div>
               </>
             )}
           </button>

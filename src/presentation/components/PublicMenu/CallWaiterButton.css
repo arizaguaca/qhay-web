@@ -1,6 +1,6 @@
 .call-waiter-container {
   position: fixed;
-  bottom: 110px; /* Positioned above the cart drawer */
+  bottom: 140px; /* Safely positioned above the minimized cart drawer (100px) */
   left: 50%;
   transform: translateX(-50%);
   z-index: 960; /* Above BillRequestBar (950) */
@@ -9,9 +9,9 @@
   transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Floats above the BillRequestBar (~72px) with a small gap */
+/* Floats above the BillRequestBar with a small gap */
 .call-waiter-container--above-bill {
-  bottom: 190px;
+  bottom: 210px;
 }
 
 .call-fab-pill {
@@ -59,6 +59,6 @@
     gap: 0.5rem;
   }
   .call-waiter-container {
-    bottom: 80px; /* adjust vertical position */
+    bottom: 125px; /* Safely clears the 100px minimized cart drawer height on mobile */
   }
 }
