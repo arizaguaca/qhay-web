@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { isAdmin, isManager, isStaff, isCustomer, canAccessOrders } from '../../core/entities/User';
+import { isAdmin, isManager, isOperationalStaff, isCustomer, canAccessOrders } from '../../core/entities/User';
 
 /**
  * @typedef {Object} AuthContextValue
@@ -46,7 +46,7 @@ export const AuthProvider = ({ authRepository, children }) => {
     // Helpers de rol (usados como funciones para facilitar testeo)
     isAdmin: () => isAdmin(user),
     isManager: () => isManager(user),
-    isStaff: () => isStaff(user),
+    isStaff: () => isOperationalStaff(user),
     isCustomer: () => isCustomer(user),
     canAccessOrders: () => canAccessOrders(user),
 

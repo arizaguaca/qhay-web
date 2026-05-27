@@ -34,13 +34,23 @@ export const isAdmin = (user) => user?.role === 'owner' || user?.role === 'admin
 /** owner | admin | manager — gestión del restaurante */
 export const isManager = (user) => ['owner', 'admin', 'manager'].includes(user?.role);
 
-/** Cualquier rol de staff (no customer) */
-export const isStaff = (user) => user?.role !== 'customer' && !!user?.role;
+/**
+ * isStaff — Mantiene la semántica original: cualquier rol que NO sea owner.
+ * Usado por RestaurantsPage para distinguir owner (carga todos sus restaurantes)
+ * de staff (auto-redirige a su restaurante asignado).
+ */
+export const isStaff = (user) => !!user?.role && user.role !== 'owner';
+
+/**
+ * isOperationalStaff — Cualquier rol de staff operacional (no customer).
+ * Útil para guards de rutas internas.
+ */
+export const isOperationalStaff = (user) => user?.role !== 'customer' && !!user?.role;
 
 /** customer — accede al menú y pedidos vía QR */
 export const isCustomer = (user) => user?.role === 'customer';
 
-/** owner | admin | manager | waiter — puede crear/ver pedidos */
+/** owner | admin | manager | waiter | customer — puede crear/ver pedidos */
 export const canAccessOrders = (user) => ['owner', 'admin', 'manager', 'waiter', 'customer'].includes(user?.role);
 
 /** Alias backward-compat */
