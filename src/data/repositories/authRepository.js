@@ -7,15 +7,24 @@ import { mapUser, mapCustomer } from '../mappers/apiMappers';
  */
 export const authRepository = {
   async login(email, password) {
-    const res = await apiFetch('/auth/login', {
+    const res = await apiFetch('/users/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Credenciales inválidas');
+      throw new Error(err.error || err.message || 'Credenciales inválidas');
     }
     return mapUser(await res.json());
+  },
+
+  async logout() {
+    // Invalida la sesión en el servidor y elimina la cookie HttpOnly
+    const res = await apiFetch('/users/logout', { method: 'POST' });
+    if (!res.ok) {
+      // No lanzar error — limpiar sesión local de todas formas
+      console.warn('[Auth] El servidor no pudo limpiar la cookie, pero la sesión local será eliminada.');
+    }
   },
 
   async register(data) {
@@ -25,7 +34,7 @@ export const authRepository = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al registrar usuario.');
+      throw new Error(err.error || err.message || 'Error al registrar usuario.');
     }
   },
 
@@ -60,6 +69,8 @@ export const authRepository = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Código incorrecto.');
-    return mapCustomer({ ...data, contact });
+    // Backend devuelve { entityId, entityType, role }
+    return mapCustomer({ ...data, id: data.entityId, phone: contact });
   },
 };
+

@@ -54,5 +54,9 @@ export const apiFetch = (path, options = {}) => {
     delete headers['Content-Type'];
   }
 
-  return fetch(apiUrl(path), { ...options, headers });
+  return fetch(apiUrl(path), {
+    ...options,
+    headers,
+    credentials: 'include', // ¡CRÍTICO! Envía la cookie JWT HttpOnly en cada petición
+  });
 };

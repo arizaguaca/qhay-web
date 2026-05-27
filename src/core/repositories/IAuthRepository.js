@@ -14,6 +14,12 @@ export const IAuthRepository = {
   login: async (_email, _password) => { throw new Error('Not implemented'); },
 
   /**
+   * Logs out the current user, invalidating the session cookie on the server.
+   * @returns {Promise<void>}
+   */
+  logout: async () => { throw new Error('Not implemented'); },
+
+  /**
    * Registers a new user account.
    * @param {Omit<import('../entities/User').User, 'id'> & {password: string}} data
    * @returns {Promise<void>}
@@ -42,3 +48,4 @@ export const IAuthRepository = {
    */
   verifyCode: async (_contact, _code) => { throw new Error('Not implemented'); },
 };
+
